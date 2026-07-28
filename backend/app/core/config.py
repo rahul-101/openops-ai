@@ -17,7 +17,12 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: str = "INFO"
 
+    # Repository configuration
+    REPOSITORY_TYPE: str = "memory"
+
+    # MongoDB configuration
     MONGODB_URI: str = "mongodb://localhost:27017"
+    DATABASE_NAME: str = "openops"
 
     GEMINI_API_KEY: str = ""
 
