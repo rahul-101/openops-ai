@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment Variables
+.env
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
