@@ -8,6 +8,8 @@ from app.application.dto.requests.incident_request import (
     UpdateIncidentRequest,
 )
 from app.domain.entities.incident import Incident
+from app.domain.models.incident_query import IncidentQuery
+from app.domain.models.page import Page
 from app.domain.repositories.incident_repository import (
     IncidentRepository,
 )
@@ -36,8 +38,14 @@ class IncidentService:
 
     def list_incidents(
         self,
-    ) -> list[Incident]:
-        return self._repository.list()
+        query: IncidentQuery | None = None,
+    ) -> Page[Incident]:
+        """List incidents using the supplied query."""
+
+        if query is None:
+            query = IncidentQuery()
+
+        return self._repository.list(query)
 
     def update_incident(
         self,

@@ -4,8 +4,9 @@ Repository interface for Incident persistence.
 
 from abc import ABC, abstractmethod
 
-from app.domain.models.incident_query import IncidentQuery
 from app.domain.entities.incident import Incident
+from app.domain.models.incident_query import IncidentQuery
+from app.domain.models.page import Page
 
 
 class IncidentRepository(ABC):
@@ -27,9 +28,9 @@ class IncidentRepository(ABC):
 
     @abstractmethod
     def list(
-        self,
-        query: IncidentQuery,
-    ) -> list[Incident]:
+    self,
+    query: IncidentQuery,
+) -> Page[Incident]:
         """Retrieve incidents matching the supplied query."""
 
     @abstractmethod
