@@ -2,6 +2,7 @@
 In-memory implementation of the IncidentRepository.
 """
 
+from app.domain.models.incident_query import IncidentQuery
 from app.core.exceptions import ResourceNotFoundException
 from app.domain.entities.incident import Incident
 from app.domain.repositories.incident_repository import IncidentRepository
@@ -29,28 +30,95 @@ class InMemoryIncidentRepository(IncidentRepository):
 
         return incident
 
-    def list(self) -> list[Incident]:
-        """Return all stored incidents."""
-        return list(self._storage.values())
+    def list(
+        self,
+        query: IncidentQuery,
+    ) -> list[Incident]:
+        """Return incidents matching the supplied query."""
 
-    def update(self, incident: Incident) -> Incident:
+        incidents = list(self._storage.values())
+
+        # -------------------------
+        # Filtering
+        # -------------------------
+
+        if query.status is not None:
+            incidents = [
+                incident
+                for incident in incidents
+                if incident.status == query.status
+            ]
+
+        if query.severity is not None:
+            incidents = [
+                incident
+                for incident in incidents
+                if incident.severity == query.severity
+            ]
+
+        if query.source is not None:
+            incidents = [
+                incident
+                for incident in incidents
+                if incident.source.lower() == query.source.lower()
+            ]
+
+        if query.search:
+            keyword = query.search.lower()
+
+            incidents = [
+                incident
+                for incident in incidents
+                if keyword in incident.title.lower()
+                or keyword in incident.description.lower()
+            ]
+
+        # -------------------------
+        # Sorting
+        # -------------------------
+
+        reverse = query.order == "desc"
+
+        incidents.sort(
+            key=lambda incident: getattr(
+                incident,
+                query.sort_by,
+            ),
+            reverse=reverse,
+        )
+
+        # -------------------------
+        # Pagination
+        # -------------------------
+
+        start = (query.page - 1) * query.size
+        end = start + query.size
+
+        return incidents[start:end]
+
+    def update(
+        self,
+        incident: Incident,
+    ) -> Incident:
         """Update an existing incident."""
 
         if incident.id not in self._storage:
             raise ResourceNotFoundException(
-                f"Incident '{incident.id}'"
+                f"Incident '{incident.id}' not found"
             )
 
         self._storage[incident.id] = incident
         return incident
 
-
-    def delete(self, incident_id: str) -> None:
+    def delete(
+        self,
+        incident_id: str,
+    ) -> None:
         """Delete an incident."""
 
         if incident_id not in self._storage:
             raise ResourceNotFoundException(
-                f"Incident '{incident_id}'"
+                f"Incident '{incident_id}' not found"
             )
 
         del self._storage[incident_id]
