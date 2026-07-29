@@ -17,10 +17,6 @@ from app.infrastructure.repositories.mongo.mongo_incident_repository import (
 
 @lru_cache
 def get_incident_repository() -> IncidentRepository:
-    """
-    Return the configured repository implementation.
-    """
-
     repository_type = settings.REPOSITORY_TYPE.lower()
 
     if repository_type == "memory":
@@ -36,7 +32,4 @@ def get_incident_repository() -> IncidentRepository:
 
 @lru_cache
 def get_incident_service() -> IncidentService:
-    """
-    Return the singleton IncidentService.
-    """
     return IncidentService(get_incident_repository())

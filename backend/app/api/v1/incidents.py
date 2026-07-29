@@ -2,15 +2,21 @@
 Incident API endpoints.
 """
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
-from app.application.dto.requests.incident_request import CreateIncidentRequest
+from app.application.dto.requests.incident_request import (
+    CreateIncidentRequest,
+    UpdateIncidentRequest,
+)
 from app.application.dto.responses.incident_response import IncidentResponse
 from app.application.mappers.incident_mapper import IncidentMapper
 from app.application.services.incident_service import IncidentService
 from app.infrastructure.dependencies import get_incident_service
 
-router = APIRouter(prefix="/incidents", tags=["Incidents"])
+router = APIRouter(
+    prefix="/incidents",
+    tags=["Incidents"],
+)
 
 
 @router.post(
@@ -67,3 +73,41 @@ def get_incident(
     incident = service.get_incident(incident_id)
 
     return IncidentMapper.to_response(incident)
+
+
+@router.put(
+    "/{incident_id}",
+    response_model=IncidentResponse,
+)
+def update_incident(
+    incident_id: str,
+    request: UpdateIncidentRequest,
+    service: IncidentService = Depends(get_incident_service),
+) -> IncidentResponse:
+    """
+    Update an existing incident.
+    """
+
+    updated = service.update_incident(
+        incident_id=incident_id,
+        request=request,
+    )
+
+    return IncidentMapper.to_response(updated)
+
+
+@router.delete(
+    "/{incident_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_incident(
+    incident_id: str,
+    service: IncidentService = Depends(get_incident_service),
+) -> Response:
+    """
+    Delete an incident.
+    """
+
+    service.delete_incident(incident_id)
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -44,3 +44,81 @@ def test_get_incident():
 
     assert response.status_code == 200
     assert response.json()["id"] == created["id"]
+
+
+def test_update_incident():
+    payload = {
+        "title": "Database Down",
+        "description": "Primary database unavailable",
+        "severity": "CRITICAL",
+        "source": "Prometheus",
+    }
+
+    created = client.post("/incidents", json=payload).json()
+
+    update_payload = {
+        "title": "Database Restored",
+        "description": "Database is healthy again",
+        "severity": "LOW",
+        "status": "RESOLVED",
+        "source": "Prometheus",
+    }
+
+    response = client.put(
+        f"/incidents/{created['id']}",
+        json=update_payload,
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["id"] == created["id"]
+    assert body["title"] == "Database Restored"
+    assert body["status"] == "RESOLVED"
+    assert body["severity"] == "LOW"
+    assert body["created_at"] == created["created_at"]
+    assert body["updated_at"] != created["updated_at"]
+
+
+def test_delete_incident():
+    payload = {
+        "title": "Memory Leak",
+        "description": "Memory usage increasing",
+        "severity": "HIGH",
+        "source": "Grafana",
+    }
+
+    created = client.post("/incidents", json=payload).json()
+
+    response = client.delete(f"/incidents/{created['id']}")
+
+    assert response.status_code == 204
+    assert response.text == ""
+
+    response = client.get(f"/incidents/{created['id']}")
+
+    assert response.status_code == 404
+
+
+def test_update_nonexistent_incident():
+    payload = {
+        "title": "Unknown",
+        "description": "Unknown",
+        "severity": "LOW",
+        "status": "OPEN",
+        "source": "Test",
+    }
+
+    response = client.put(
+        "/incidents/does-not-exist",
+        json=payload,
+    )
+
+    assert response.status_code == 404
+
+
+def test_delete_nonexistent_incident():
+    response = client.delete("/incidents/does-not-exist")
+
+    assert response.status_code == 404

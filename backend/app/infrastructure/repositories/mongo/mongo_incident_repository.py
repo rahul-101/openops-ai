@@ -2,6 +2,7 @@
 MongoDB implementation of IncidentRepository.
 """
 
+from app.core.exceptions import ResourceNotFoundException
 from app.domain.entities.incident import (
     Incident,
     IncidentSeverity,
@@ -9,7 +10,6 @@ from app.domain.entities.incident import (
 )
 from app.domain.repositories.incident_repository import IncidentRepository
 from app.infrastructure.persistence.mongodb import get_database
-from app.core.exceptions import ResourceNotFoundException
 
 
 class MongoIncidentRepository(IncidentRepository):
@@ -28,13 +28,18 @@ class MongoIncidentRepository(IncidentRepository):
 
         self.collection.insert_one(document)
 
-        return incident
+        # Return the persisted document so datetime precision
+        # matches what MongoDB actually stores.
+        return self.get(incident.id)
 
     def get(self, incident_id: str) -> Incident:
         document = self.collection.find_one({"id": incident_id})
 
         if document is None:
-            raise ResourceNotFoundException(f"Incident '{incident_id}' not found")
+            raise ResourceNotFoundException(
+                f"Incident '{incident_id}' not found"
+            )
+
         document.pop("_id", None)
 
         document["severity"] = IncidentSeverity(document["severity"])
@@ -46,7 +51,6 @@ class MongoIncidentRepository(IncidentRepository):
         incidents = []
 
         for document in self.collection.find():
-
             document.pop("_id", None)
 
             document["severity"] = IncidentSeverity(document["severity"])
@@ -57,8 +61,6 @@ class MongoIncidentRepository(IncidentRepository):
         return incidents
 
     def update(self, incident: Incident) -> Incident:
-        """Update an existing incident."""
-
         document = incident.model_dump()
 
         document["severity"] = incident.severity.value
@@ -71,20 +73,18 @@ class MongoIncidentRepository(IncidentRepository):
 
         if result.matched_count == 0:
             raise ResourceNotFoundException(
-                f"Incident '{incident.id}'"
+                f"Incident '{incident.id}' not found"
             )
 
-        return incident
-
+        # Return the persisted document for consistency.
+        return self.get(incident.id)
 
     def delete(self, incident_id: str) -> None:
-        """Delete an incident."""
-
         result = self.collection.delete_one(
             {"id": incident_id}
         )
 
         if result.deleted_count == 0:
             raise ResourceNotFoundException(
-                f"Incident '{incident_id}'"
+                f"Incident '{incident_id}' not found"
             )
