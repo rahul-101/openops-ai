@@ -35,5 +35,5 @@ def test_demo_error_endpoint():
     body = response.json()
 
     assert body["success"] is False
-    assert body["message"] == "Incident not found"
-    assert body["data"] is None
+    assert body["error"]["type"] == "ResourceNotFoundException"
+    assert body["error"]["message"] == "Incident not found"

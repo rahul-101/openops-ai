@@ -24,3 +24,13 @@ class IncidentRepository(ABC):
     def list(self) -> list[Incident]:
         """Return all incidents."""
         raise NotImplementedError
+
+    @abstractmethod
+    def update(self, incident: Incident) -> Incident:
+        """Update an existing incident."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete(self, incident_id: str) -> None:
+        """Delete an incident by ID."""
+        raise NotImplementedError

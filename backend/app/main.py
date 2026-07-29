@@ -4,13 +4,10 @@ from fastapi import FastAPI
 
 from app.api.router import api_router
 from app.core.config import settings
+from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import configure_logging, logger
 from app.core.middleware import RequestLoggingMiddleware
-from app.core.exception_handlers import (
-    generic_exception_handler,
-    openops_exception_handler,
-)
-from app.core.exceptions import OpenOpsException
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,15 +34,12 @@ app = FastAPI(
     version=settings.APP_VERSION,
     lifespan=lifespan,
 )
-app.add_exception_handler(
-    OpenOpsException,
-    openops_exception_handler,
-)
 
-app.add_exception_handler(
-    Exception,
-    generic_exception_handler,
-)
+# Register all global exception handlers
+register_exception_handlers(app)
 
+# Register middleware
 app.add_middleware(RequestLoggingMiddleware)
+
+# Register API routes
 app.include_router(api_router)

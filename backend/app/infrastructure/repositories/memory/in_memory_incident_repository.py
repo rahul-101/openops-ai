@@ -24,7 +24,7 @@ class InMemoryIncidentRepository(IncidentRepository):
 
         if incident is None:
             raise ResourceNotFoundException(
-                f"Incident '{incident_id}' not found."
+                f"Incident '{incident_id}' not found"
             )
 
         return incident
@@ -32,3 +32,25 @@ class InMemoryIncidentRepository(IncidentRepository):
     def list(self) -> list[Incident]:
         """Return all stored incidents."""
         return list(self._storage.values())
+
+    def update(self, incident: Incident) -> Incident:
+        """Update an existing incident."""
+
+        if incident.id not in self._storage:
+            raise ResourceNotFoundException(
+                f"Incident '{incident.id}'"
+            )
+
+        self._storage[incident.id] = incident
+        return incident
+
+
+    def delete(self, incident_id: str) -> None:
+        """Delete an incident."""
+
+        if incident_id not in self._storage:
+            raise ResourceNotFoundException(
+                f"Incident '{incident_id}'"
+            )
+
+        del self._storage[incident_id]

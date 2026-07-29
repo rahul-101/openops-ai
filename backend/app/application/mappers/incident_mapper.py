@@ -2,8 +2,12 @@
 Mapper between DTOs and domain models.
 """
 
-from app.application.dto.requests.incident_request import CreateIncidentRequest
-from app.application.dto.responses.incident_response import IncidentResponse
+from app.application.dto.requests.incident_request import (
+    CreateIncidentRequest,
+)
+from app.application.dto.responses.incident_response import (
+    IncidentResponse,
+)
 from app.domain.entities.incident import Incident
 
 
@@ -20,7 +24,9 @@ class IncidentMapper:
         )
 
     @staticmethod
-    def to_response(incident: Incident) -> IncidentResponse:
+    def to_response(
+        incident: Incident,
+    ) -> IncidentResponse:
         return IncidentResponse(
             id=incident.id,
             title=incident.title,

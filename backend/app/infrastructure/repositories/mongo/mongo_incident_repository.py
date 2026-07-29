@@ -9,6 +9,7 @@ from app.domain.entities.incident import (
 )
 from app.domain.repositories.incident_repository import IncidentRepository
 from app.infrastructure.persistence.mongodb import get_database
+from app.core.exceptions import ResourceNotFoundException
 
 
 class MongoIncidentRepository(IncidentRepository):
@@ -33,8 +34,7 @@ class MongoIncidentRepository(IncidentRepository):
         document = self.collection.find_one({"id": incident_id})
 
         if document is None:
-            raise ValueError(f"Incident '{incident_id}' not found.")
-
+            raise ResourceNotFoundException(f"Incident '{incident_id}' not found")
         document.pop("_id", None)
 
         document["severity"] = IncidentSeverity(document["severity"])
@@ -55,3 +55,36 @@ class MongoIncidentRepository(IncidentRepository):
             incidents.append(Incident(**document))
 
         return incidents
+
+    def update(self, incident: Incident) -> Incident:
+        """Update an existing incident."""
+
+        document = incident.model_dump()
+
+        document["severity"] = incident.severity.value
+        document["status"] = incident.status.value
+
+        result = self.collection.replace_one(
+            {"id": incident.id},
+            document,
+        )
+
+        if result.matched_count == 0:
+            raise ResourceNotFoundException(
+                f"Incident '{incident.id}'"
+            )
+
+        return incident
+
+
+    def delete(self, incident_id: str) -> None:
+        """Delete an incident."""
+
+        result = self.collection.delete_one(
+            {"id": incident_id}
+        )
+
+        if result.deleted_count == 0:
+            raise ResourceNotFoundException(
+                f"Incident '{incident_id}'"
+            )
