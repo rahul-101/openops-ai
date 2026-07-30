@@ -2,9 +2,10 @@
 In-memory implementation of the IncidentRepository.
 """
 
-from app.domain.models.incident_query import IncidentQuery
 from app.core.exceptions import ResourceNotFoundException
 from app.domain.entities.incident import Incident
+from app.domain.models.incident_query import IncidentQuery
+from app.domain.models.page import Page
 from app.domain.repositories.incident_repository import IncidentRepository
 
 
@@ -14,13 +15,21 @@ class InMemoryIncidentRepository(IncidentRepository):
     def __init__(self) -> None:
         self._storage: dict[str, Incident] = {}
 
-    def create(self, incident: Incident) -> Incident:
+    def create(
+        self,
+        incident: Incident,
+    ) -> Incident:
         """Store a new incident."""
+
         self._storage[incident.id] = incident
         return incident
 
-    def get(self, incident_id: str) -> Incident:
+    def get(
+        self,
+        incident_id: str,
+    ) -> Incident:
         """Retrieve an incident by its ID."""
+
         incident = self._storage.get(incident_id)
 
         if incident is None:
@@ -33,14 +42,14 @@ class InMemoryIncidentRepository(IncidentRepository):
     def list(
         self,
         query: IncidentQuery,
-    ) -> list[Incident]:
+    ) -> Page[Incident]:
         """Return incidents matching the supplied query."""
 
         incidents = list(self._storage.values())
 
-        # -------------------------
+        # --------------------------------
         # Filtering
-        # -------------------------
+        # --------------------------------
 
         if query.status is not None:
             incidents = [
@@ -60,7 +69,8 @@ class InMemoryIncidentRepository(IncidentRepository):
             incidents = [
                 incident
                 for incident in incidents
-                if incident.source.lower() == query.source.lower()
+                if incident.source.lower()
+                == query.source.lower()
             ]
 
         if query.search:
@@ -73,9 +83,9 @@ class InMemoryIncidentRepository(IncidentRepository):
                 or keyword in incident.description.lower()
             ]
 
-        # -------------------------
+        # --------------------------------
         # Sorting
-        # -------------------------
+        # --------------------------------
 
         reverse = query.order == "desc"
 
@@ -87,14 +97,23 @@ class InMemoryIncidentRepository(IncidentRepository):
             reverse=reverse,
         )
 
-        # -------------------------
+        # --------------------------------
         # Pagination
-        # -------------------------
+        # --------------------------------
+
+        total_items = len(incidents)
 
         start = (query.page - 1) * query.size
         end = start + query.size
 
-        return incidents[start:end]
+        paginated_items = incidents[start:end]
+
+        return Page(
+            items=paginated_items,
+            page=query.page,
+            size=query.size,
+            total_items=total_items,
+        )
 
     def update(
         self,

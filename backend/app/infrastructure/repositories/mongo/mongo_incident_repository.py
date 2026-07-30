@@ -8,6 +8,8 @@ from app.domain.entities.incident import (
     IncidentSeverity,
     IncidentStatus,
 )
+from app.domain.models.incident_query import IncidentQuery
+from app.domain.models.page import Page
 from app.domain.repositories.incident_repository import IncidentRepository
 from app.infrastructure.persistence.mongodb import get_database
 
@@ -20,7 +22,10 @@ class MongoIncidentRepository(IncidentRepository):
     def __init__(self):
         self.collection = get_database()[self.COLLECTION_NAME]
 
-    def create(self, incident: Incident) -> Incident:
+    def create(
+        self,
+        incident: Incident,
+    ) -> Incident:
         document = incident.model_dump()
 
         document["severity"] = incident.severity.value
@@ -28,12 +33,15 @@ class MongoIncidentRepository(IncidentRepository):
 
         self.collection.insert_one(document)
 
-        # Return the persisted document so datetime precision
-        # matches what MongoDB actually stores.
         return self.get(incident.id)
 
-    def get(self, incident_id: str) -> Incident:
-        document = self.collection.find_one({"id": incident_id})
+    def get(
+        self,
+        incident_id: str,
+    ) -> Incident:
+        document = self.collection.find_one(
+            {"id": incident_id}
+        )
 
         if document is None:
             raise ResourceNotFoundException(
@@ -42,25 +50,90 @@ class MongoIncidentRepository(IncidentRepository):
 
         document.pop("_id", None)
 
-        document["severity"] = IncidentSeverity(document["severity"])
-        document["status"] = IncidentStatus(document["status"])
+        document["severity"] = IncidentSeverity(
+            document["severity"]
+        )
+
+        document["status"] = IncidentStatus(
+            document["status"]
+        )
 
         return Incident(**document)
 
-    def list(self) -> list[Incident]:
-        incidents = []
+    def list(
+        self,
+        query: IncidentQuery,
+    ) -> Page[Incident]:
 
-        for document in self.collection.find():
+        filters = {}
+
+        if query.status is not None:
+            filters["status"] = query.status.value
+
+        if query.severity is not None:
+            filters["severity"] = query.severity.value
+
+        if query.source is not None:
+            filters["source"] = query.source
+
+        if query.search:
+            filters["$or"] = [
+                {
+                    "title": {
+                        "$regex": query.search,
+                        "$options": "i",
+                    }
+                },
+                {
+                    "description": {
+                        "$regex": query.search,
+                        "$options": "i",
+                    }
+                },
+            ]
+
+        total_items = self.collection.count_documents(
+            filters
+        )
+
+        direction = -1 if query.order == "desc" else 1
+
+        cursor = (
+            self.collection.find(filters)
+            .sort(query.sort_by, direction)
+            .skip((query.page - 1) * query.size)
+            .limit(query.size)
+        )
+
+        incidents: list[Incident] = []
+
+        for document in cursor:
             document.pop("_id", None)
 
-            document["severity"] = IncidentSeverity(document["severity"])
-            document["status"] = IncidentStatus(document["status"])
+            document["severity"] = IncidentSeverity(
+                document["severity"]
+            )
 
-            incidents.append(Incident(**document))
+            document["status"] = IncidentStatus(
+                document["status"]
+            )
 
-        return incidents
+            incidents.append(
+                Incident(**document)
+            )
 
-    def update(self, incident: Incident) -> Incident:
+        return Page(
+            items=incidents,
+            page=query.page,
+            size=query.size,
+            total_items=total_items,
+        )
+
+    def update(
+        self,
+        incident: Incident,
+    ) -> Incident:
+
         document = incident.model_dump()
 
         document["severity"] = incident.severity.value
@@ -76,10 +149,15 @@ class MongoIncidentRepository(IncidentRepository):
                 f"Incident '{incident.id}' not found"
             )
 
-        # Return the persisted document for consistency.
-        return self.get(incident.id)
+        return self.get(
+            incident.id
+        )
 
-    def delete(self, incident_id: str) -> None:
+    def delete(
+        self,
+        incident_id: str,
+    ) -> None:
+
         result = self.collection.delete_one(
             {"id": incident_id}
         )

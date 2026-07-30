@@ -2,15 +2,23 @@
 Incident API endpoints.
 """
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.application.dto.requests.incident_request import (
     CreateIncidentRequest,
     UpdateIncidentRequest,
 )
 from app.application.dto.responses.incident_response import IncidentResponse
+from app.application.dto.responses.paginated_response import (
+    PaginatedResponse,
+)
 from app.application.mappers.incident_mapper import IncidentMapper
 from app.application.services.incident_service import IncidentService
+from app.domain.entities.incident import (
+    IncidentSeverity,
+    IncidentStatus,
+)
+from app.domain.models.incident_query import IncidentQuery
 from app.infrastructure.dependencies import get_incident_service
 
 router = APIRouter(
@@ -41,21 +49,45 @@ def create_incident(
 
 @router.get(
     "",
-    response_model=list[IncidentResponse],
+    response_model=PaginatedResponse[IncidentResponse],
 )
 def list_incidents(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    status_filter: IncidentStatus | None = Query(
+        default=None,
+        alias="status",
+    ),
+    severity: IncidentSeverity | None = None,
+    source: str | None = None,
+    search: str | None = None,
+    sort_by: str = "created_at",
+    order: str = Query(
+        "desc",
+        pattern="^(asc|desc)$",
+    ),
     service: IncidentService = Depends(get_incident_service),
-) -> list[IncidentResponse]:
+) -> PaginatedResponse[IncidentResponse]:
     """
-    List all incidents.
+    List incidents with filtering, sorting and pagination.
     """
 
-    incidents = service.list_incidents()
+    query = IncidentQuery(
+        page=page,
+        size=size,
+        status=status_filter,
+        severity=severity,
+        source=source,
+        search=search,
+        sort_by=sort_by,
+        order=order,
+    )
 
-    return [
-        IncidentMapper.to_response(incident)
-        for incident in incidents
-    ]
+    incidents = service.list_incidents(query)
+
+    return IncidentMapper.to_paginated_response(
+        incidents
+    )
 
 
 @router.get(

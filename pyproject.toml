@@ -1,23 +1,89 @@
 [build-system]
-requires = ["setuptools>=75.0"]
+requires = ["setuptools>=75", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "openops-ai"
 version = "0.1.0"
-description = "Enterprise Autonomous Incident Response Platform"
+description = "Enterprise Autonomous Incident Response Platform powered by FastAPI, Google ADK, and Gemini"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
 
 authors = [
     { name = "Rahul Biswas" }
 ]
 
+license = { text = "MIT" }
+
+keywords = [
+    "fastapi",
+    "google-adk",
+    "gemini",
+    "agents",
+    "mongodb",
+    "incident-management",
+    "ai"
+]
+
 dependencies = [
+    # ----------------------------
+    # FastAPI
+    # ----------------------------
     "fastapi>=0.116,<1.0",
-    "uvicorn>=0.35,<1.0",
+    "uvicorn[standard]>=0.35,<1.0",
+
+    # ----------------------------
+    # Configuration
+    # ----------------------------
     "pydantic>=2.11,<3.0",
     "pydantic-settings>=2.10,<3.0",
+
+    # ----------------------------
+    # Database
+    # ----------------------------
     "pymongo>=4.14,<5.0",
+
+    # ----------------------------
+    # Logging
+    # ----------------------------
+    "structlog>=24.4,<27.0",
+
+    # ----------------------------
+    # AI Platform
+    # ----------------------------
+    "google-adk>=1.12.0",
+    "google-genai>=1.31.0"
 ]
+
+[project.optional-dependencies]
+
+dev = [
+    "pytest>=8.4",
+    "pytest-asyncio>=1.1",
+    "black>=25.0",
+    "ruff>=0.12",
+    "mypy>=1.17",
+    "pre-commit>=4.2"
+]
+
+[tool.setuptools]
+package-dir = {"" = "backend"}
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["backend"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true

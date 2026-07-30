@@ -83,9 +83,12 @@ def test_list_incidents():
     service.create_incident(first)
     service.create_incident(second)
 
-    incidents = service.list_incidents()
+    page = service.list_incidents()
 
-    assert len(incidents) == 2
+    assert page.total_items == 2
+    assert page.page == 1
+    assert page.size == 20
+    assert len(page.items) == 2
 
 
 def test_update_incident():
@@ -162,3 +165,21 @@ def test_delete_nonexistent_incident():
 
     with pytest.raises(ResourceNotFoundException):
         service.delete_incident("does-not-exist")
+
+def test_list_incidents_with_custom_page_size():
+    service = create_service()
+
+    for i in range(10):
+        incident = Incident(
+            title=f"Incident {i}",
+            description="Test",
+            severity=IncidentSeverity.LOW,
+            source="Test",
+        )
+
+        service.create_incident(incident)
+
+    page = service.list_incidents()
+
+    assert page.total_items == 10
+    assert page.page == 1

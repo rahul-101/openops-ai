@@ -1,0 +1,36 @@
+FROM python:3.13-slim
+
+LABEL maintainer="Rahul Biswas"
+LABEL application="OpenOps AI"
+LABEL environment="development"
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy project metadata first (better Docker layer caching)
+COPY pyproject.toml .
+COPY README.md .
+
+# Copy backend source
+COPY backend/ ./backend
+
+# Upgrade pip and install the project
+RUN python -m pip install --upgrade pip
+RUN pip install .
+
+# Create non-root user
+RUN useradd --create-home appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -27,7 +27,20 @@ def test_list_incidents():
     response = client.get("/incidents")
 
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+
+    body = response.json()
+
+    assert "items" in body
+    assert "page" in body
+    assert "size" in body
+    assert "total_items" in body
+    assert "total_pages" in body
+    assert "has_next" in body
+    assert "has_previous" in body
+
+    assert isinstance(body["items"], list)
+    assert body["page"] == 1
+    assert body["size"] == 20
 
 
 def test_get_incident():
@@ -122,3 +135,38 @@ def test_delete_nonexistent_incident():
     response = client.delete("/incidents/does-not-exist")
 
     assert response.status_code == 404
+
+def test_list_incidents_with_pagination():
+    """
+    Verify pagination metadata is returned.
+    """
+
+    response = client.get(
+        "/incidents?page=1&size=5"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["page"] == 1
+    assert body["size"] == 5
+
+    assert "total_items" in body
+    assert "total_pages" in body
+    assert "has_next" in body
+    assert "has_previous" in body
+
+def test_list_incidents_invalid_page():
+    response = client.get(
+        "/incidents?page=0"
+    )
+
+    assert response.status_code == 422
+
+def test_list_incidents_invalid_order():
+    response = client.get(
+        "/incidents?order=random"
+    )
+
+    assert response.status_code == 422
