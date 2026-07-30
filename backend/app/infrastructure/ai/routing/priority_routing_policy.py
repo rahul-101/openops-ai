@@ -9,7 +9,6 @@ class PriorityRoutingPolicy(RoutingPolicy):
     Current priority:
         1. Gemini
         2. OpenRouter
-        3. OmniRouter
 
     Future versions can make this decision based on
     health, latency, quotas, or cost.
@@ -18,15 +17,22 @@ class PriorityRoutingPolicy(RoutingPolicy):
     PRIORITY = [
         "gemini",
         "openrouter",
-        "omnirouter",
     ]
 
     def __init__(self, registry: ProviderRegistry):
         self.registry = registry
 
-    def select_provider(self) -> str:
-        for provider in self.PRIORITY:
-            if self.registry.exists(provider):
-                return provider
+    def get_provider_priority(self) -> list[str]:
+        """
+        Returns all registered providers in priority order.
+        """
+        providers = [
+            provider
+            for provider in self.PRIORITY
+            if self.registry.exists(provider)
+        ]
 
-        raise RuntimeError("No AI providers are registered.")
+        if not providers:
+            raise RuntimeError("No AI providers are registered.")
+
+        return providers

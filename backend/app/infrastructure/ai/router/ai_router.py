@@ -24,11 +24,29 @@ class AIRouter(AIService):
         prompt: str,
     ) -> AIResponse:
 
-        provider_name = self.routing_policy.select_provider()
+        providers = self.routing_policy.get_provider_priority()
 
-        provider = self.registry.get(provider_name)
+        last_exception = None
 
-        return await provider.analyze_incident(
-            request=request,
-            prompt=prompt,
-        )
+        for provider_name in providers:
+            provider = self.registry.get(provider_name)
+
+            try:
+                return await provider.analyze_incident(
+                    request=request,
+                    prompt=prompt,
+                )
+
+            except Exception as ex:
+                last_exception = ex
+
+                print(
+                    f"[AI Router] Provider '{provider_name}' failed. "
+                    f"Trying next provider..."
+                )
+
+                continue
+
+        raise RuntimeError(
+            "All registered AI providers failed to process the request."
+        ) from last_exception

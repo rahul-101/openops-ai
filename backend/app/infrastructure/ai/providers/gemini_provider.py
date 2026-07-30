@@ -2,6 +2,16 @@ import json
 import time
 from asyncio import sleep
 
+from google.genai import errors as genai_errors
+
+from app.infrastructure.ai.exceptions import (
+    AuthenticationError,
+    InvalidRequestError,
+    ProviderRateLimitError,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
+)
+
 from google import genai
 from pydantic import ValidationError
 
@@ -72,7 +82,7 @@ class GeminiProvider(AIService):
                 text = getattr(response, "text", None)
 
                 if not text or not text.strip():
-                    raise ValueError(
+                    raise InvalidRequestError(
                         "Gemini returned an empty response."
                     )
 
@@ -80,15 +90,15 @@ class GeminiProvider(AIService):
                     raw_data = json.loads(text)
 
                 except json.JSONDecodeError as ex:
-                    raise ValueError(
+                    raise InvalidRequestError(
                         f"Gemini returned invalid JSON:\n{text}"
-                    ) from ex
+                    )from ex
 
                 try:
                     parsed = GeminiResponse.model_validate(raw_data)
 
                 except ValidationError as ex:
-                    raise ValueError(
+                    raise InvalidRequestError(
                         f"Gemini response validation failed:\n{ex}"
                     ) from ex
 
@@ -159,6 +169,29 @@ class GeminiProvider(AIService):
                     log.exception(
                         "AI analysis failed after maximum retries",
                     )
+
+                    #
+                    # Map provider exceptions into our domain exceptions.
+                    #
+
+                    if isinstance(ex, genai_errors.ClientError):
+
+                        status = getattr(ex, "code", None)
+
+                        if status == 401:
+                            raise AuthenticationError(str(ex)) from ex
+
+                        if status == 400:
+                            raise InvalidRequestError(str(ex)) from ex
+
+                        if status == 429:
+                            raise ProviderRateLimitError(str(ex)) from ex
+
+                        if status in (500, 502, 503, 504):
+                            raise ProviderUnavailableError(str(ex)) from ex
+
+                    if isinstance(ex, TimeoutError):
+                        raise ProviderTimeoutError(str(ex)) from ex
 
                     raise
 
