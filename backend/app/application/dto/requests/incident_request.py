@@ -10,6 +10,18 @@ from app.domain.entities.incident import (
 )
 
 
+class IncidentRequest(BaseModel):
+    """
+    DTO used internally by the AI layer.
+    """
+
+    title: str = Field(..., min_length=3, max_length=200)
+
+    description: str = Field(..., min_length=5)
+
+    severity: str
+
+
 class CreateIncidentRequest(BaseModel):
     """DTO for creating an incident."""
 
