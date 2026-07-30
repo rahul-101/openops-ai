@@ -1,13 +1,23 @@
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "openops-ai"
 version = "0.1.0"
 description = "Enterprise Autonomous Incident Response Platform"
+readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+
+authors = [
+    { name = "Rahul Biswas" }
+]
 
 dependencies = [
-    "fastapi",
-    "uvicorn",
-    "pydantic",
-    "pydantic-settings",
-    "pymongo",
+    "fastapi>=0.116,<1.0",
+    "uvicorn>=0.35,<1.0",
+    "pydantic>=2.11,<3.0",
+    "pydantic-settings>=2.10,<3.0",
+    "pymongo>=4.14,<5.0",
 ]
