@@ -1,0 +1,49 @@
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# Node
+node_modules/
+
+# Build Artifacts
+dist/
+build/
+*.egg-info/
+
+# MongoDB
+mongodb_data/
+
+# Docker
+docker-compose.override.yml
