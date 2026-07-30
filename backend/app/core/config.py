@@ -26,6 +26,14 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: str = ""
 
+# ------------------------------------------------------------------
+# OpenRouter
+# ------------------------------------------------------------------
+
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "openrouter/free"
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         case_sensitive=True,

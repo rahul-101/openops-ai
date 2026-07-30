@@ -10,13 +10,20 @@ from app.core.config import settings
 from app.domain.repositories.incident_repository import IncidentRepository
 from app.infrastructure.ai.agents.incident_agent import IncidentAgent
 from app.infrastructure.ai.providers.gemini_provider import GeminiProvider
+from app.infrastructure.ai.registry.provider_registry import (
+    ProviderRegistry,
+)
+from app.infrastructure.ai.router.ai_router import AIRouter
 from app.infrastructure.repositories.memory.in_memory_incident_repository import (
     InMemoryIncidentRepository,
 )
 from app.infrastructure.repositories.mongo.mongo_incident_repository import (
     MongoIncidentRepository,
 )
-
+from functools import lru_cache
+from app.infrastructure.ai.providers.openrouter_provider import (
+    OpenRouterProvider,
+)
 
 # ------------------------------------------------------------------
 # Repository
@@ -50,33 +57,66 @@ def get_incident_service() -> IncidentService:
 
 
 # ------------------------------------------------------------------
-# AI
+# AI Providers
 # ------------------------------------------------------------------
 
+from functools import lru_cache
 
-def get_ai_provider() -> GeminiProvider:
-    """
-    Returns the configured AI provider.
-    """
+from app.infrastructure.ai.routing.priority_routing_policy import (
+    PriorityRoutingPolicy,
+)
 
+
+@lru_cache
+def get_gemini_provider() -> GeminiProvider:
     return GeminiProvider()
 
 
-def get_incident_agent() -> IncidentAgent:
-    """
-    Returns the AI incident agent.
-    """
+@lru_cache
+def get_provider_registry() -> ProviderRegistry:
+    registry = ProviderRegistry()
 
-    return IncidentAgent(
-        ai_service=get_ai_provider(),
+    registry.register(
+        "gemini",
+        get_gemini_provider(),
+    )
+
+    registry.register(
+        "openrouter",
+        get_openrouter_provider(),
+    )
+
+    return registry
+
+
+@lru_cache
+def get_routing_policy() -> PriorityRoutingPolicy:
+    return PriorityRoutingPolicy(
+        registry=get_provider_registry(),
     )
 
 
-def get_incident_analysis_service() -> IncidentAnalysisService:
-    """
-    Returns the application service responsible for AI analysis.
-    """
+@lru_cache
+def get_ai_router() -> AIRouter:
+    return AIRouter(
+        registry=get_provider_registry(),
+        routing_policy=get_routing_policy(),
+    )
 
+
+@lru_cache
+def get_incident_agent() -> IncidentAgent:
+    return IncidentAgent(
+        ai_service=get_ai_router(),
+    )
+
+
+@lru_cache
+def get_incident_analysis_service() -> IncidentAnalysisService:
     return IncidentAnalysisService(
         agent=get_incident_agent(),
     )
+
+@lru_cache
+def get_openrouter_provider() -> OpenRouterProvider:
+    return OpenRouterProvider()

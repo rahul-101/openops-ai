@@ -7,6 +7,10 @@ from app.infrastructure.ai.prompt_manager import PromptManager
 class IncidentAgent:
     """
     AI-powered incident analysis agent.
+
+    The agent is provider-agnostic and depends only on the
+    AIService interface. Whether the implementation is Gemini,
+    OpenRouter, OmniRouter or an AIRouter is completely hidden.
     """
 
     def __init__(
@@ -23,6 +27,7 @@ class IncidentAgent:
         description: str,
         severity: str,
     ) -> AIResponse:
+
         request = IncidentRequest(
             title=title,
             description=description,
