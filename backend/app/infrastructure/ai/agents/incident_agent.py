@@ -12,9 +12,10 @@ class IncidentAgent:
     def __init__(
         self,
         ai_service: AIService,
-    ):
+        prompt_manager: PromptManager | None = None,
+    ) -> None:
         self.ai_service = ai_service
-        self.prompt_manager = PromptManager()
+        self.prompt_manager = prompt_manager or PromptManager()
 
     async def analyze(
         self,
@@ -22,7 +23,6 @@ class IncidentAgent:
         description: str,
         severity: str,
     ) -> AIResponse:
-
         request = IncidentRequest(
             title=title,
             description=description,

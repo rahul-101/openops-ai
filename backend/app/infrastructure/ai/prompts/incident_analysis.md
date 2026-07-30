@@ -31,14 +31,14 @@ Severity:
 
 Return ONLY this JSON object.
 
-{
+{{
 "summary": "...",
 "category": "...",
 "severity": "...",
 "probable_cause": "...",
 "recommendation": "...",
 "confidence": 0.95
-}
+}}
 
 Rules:
 

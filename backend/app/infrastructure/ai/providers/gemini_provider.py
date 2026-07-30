@@ -1,23 +1,32 @@
 import json
 import time
+from asyncio import sleep
 
 from google import genai
+from pydantic import ValidationError
 
 from app.application.dto.requests.incident_request import IncidentRequest
 from app.application.dto.responses.ai_response import AIResponse
 from app.application.interfaces.ai_service import AIService
 from app.core.config import settings
+from app.core.logging import logger
+from app.core.request_context import request_id_ctx
+from app.infrastructure.ai.models.gemini_response import GeminiResponse
 
 
 class GeminiProvider(AIService):
     """
-    Google Gemini implementation.
+    Google Gemini implementation with retry support,
+    structured logging and request tracing.
     """
 
     MODEL = "gemini-2.5-flash"
+    PROVIDER = "Gemini"
 
-    def __init__(self):
+    MAX_RETRIES = 3
+    INITIAL_BACKOFF = 1.0
 
+    def __init__(self) -> None:
         if not settings.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY is not configured.")
 
@@ -31,52 +40,137 @@ class GeminiProvider(AIService):
         prompt: str,
     ) -> AIResponse:
 
+        log = logger.bind(
+            request_id=request_id_ctx.get(),
+            provider=self.PROVIDER,
+            model=self.MODEL,
+        )
+
+        log.info(
+            "AI analysis started",
+            severity=request.severity,
+        )
+
         start = time.perf_counter()
 
-        response = self.client.models.generate_content(
-            model=self.MODEL,
-            contents=prompt,
-        )
+        last_exception = None
 
-        elapsed = (time.perf_counter() - start) * 1000
+        for attempt in range(self.MAX_RETRIES):
 
-        text = response.text.strip()
+            try:
 
-        try:
-            data = json.loads(text)
-        except json.JSONDecodeError as ex:
-            raise ValueError(
-                f"Gemini returned invalid JSON:\n{text}"
-            ) from ex
+                log.info(
+                    "Calling AI provider",
+                    attempt=attempt + 1,
+                )
 
-        usage = getattr(response, "usage_metadata", None)
+                response = self.client.models.generate_content(
+                    model=self.MODEL,
+                    contents=prompt,
+                )
 
-        input_tokens = 0
-        output_tokens = 0
+                text = getattr(response, "text", None)
 
-        if usage:
-            input_tokens = getattr(
-                usage,
-                "prompt_token_count",
-                0,
-            )
+                if not text or not text.strip():
+                    raise ValueError(
+                        "Gemini returned an empty response."
+                    )
 
-            output_tokens = getattr(
-                usage,
-                "candidates_token_count",
-                0,
-            )
+                try:
+                    raw_data = json.loads(text)
 
-        return AIResponse(
-            summary=data["summary"],
-            severity=data["severity"],
-            category=data["category"],
-            probable_cause=data["probable_cause"],
-            recommendation=data["recommendation"],
-            confidence=float(data["confidence"]),
-            provider="Gemini",
-            model=self.MODEL,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            processing_time_ms=round(elapsed, 2),
-        )
+                except json.JSONDecodeError as ex:
+                    raise ValueError(
+                        f"Gemini returned invalid JSON:\n{text}"
+                    ) from ex
+
+                try:
+                    parsed = GeminiResponse.model_validate(raw_data)
+
+                except ValidationError as ex:
+                    raise ValueError(
+                        f"Gemini response validation failed:\n{ex}"
+                    ) from ex
+
+                usage = getattr(
+                    response,
+                    "usage_metadata",
+                    None,
+                )
+
+                input_tokens = 0
+                output_tokens = 0
+
+                if usage:
+
+                    input_tokens = getattr(
+                        usage,
+                        "prompt_token_count",
+                        0,
+                    )
+
+                    output_tokens = getattr(
+                        usage,
+                        "candidates_token_count",
+                        0,
+                    )
+
+                elapsed = round(
+                    (time.perf_counter() - start) * 1000,
+                    2,
+                )
+
+                log.info(
+                    "AI analysis completed",
+                    severity=parsed.severity,
+                    category=parsed.category,
+                    confidence=parsed.confidence,
+                    latency_ms=elapsed,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                )
+
+                return AIResponse(
+                    summary=parsed.summary,
+                    severity=parsed.severity,
+                    category=parsed.category,
+                    probable_cause=parsed.probable_cause,
+                    recommendation=parsed.recommendation,
+                    confidence=parsed.confidence,
+                    provider=self.PROVIDER,
+                    model=self.MODEL,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    processing_time_ms=elapsed,
+                )
+
+            except Exception as ex:
+
+                last_exception = ex
+
+                log.warning(
+                    "AI request failed",
+                    attempt=attempt + 1,
+                    error=str(ex),
+                )
+
+                if attempt == self.MAX_RETRIES - 1:
+
+                    log.exception(
+                        "AI analysis failed after maximum retries",
+                    )
+
+                    raise
+
+                backoff = self.INITIAL_BACKOFF * (
+                    2**attempt
+                )
+
+                log.info(
+                    "Retrying AI request",
+                    next_retry_in_seconds=backoff,
+                )
+
+                await sleep(backoff)
+
+        raise last_exception
