@@ -1,19 +1,20 @@
 from app.application.dto.requests.incident_request import IncidentRequest
 from app.application.dto.responses.ai_response import AIResponse
 from app.application.interfaces.ai_service import AIService
+from app.infrastructure.ai.prompt_manager import PromptManager
 
 
 class IncidentAgent:
     """
-    Coordinates AI-powered incident analysis.
-
-    The agent is intentionally lightweight.
-    It prepares the request and delegates the
-    actual AI work to the configured AI provider.
+    AI-powered incident analysis agent.
     """
 
-    def __init__(self, ai_service: AIService):
-        self._ai_service = ai_service
+    def __init__(
+        self,
+        ai_service: AIService,
+    ):
+        self.ai_service = ai_service
+        self.prompt_manager = PromptManager()
 
     async def analyze(
         self,
@@ -21,9 +22,6 @@ class IncidentAgent:
         description: str,
         severity: str,
     ) -> AIResponse:
-        """
-        Analyze an incident using the configured AI provider.
-        """
 
         request = IncidentRequest(
             title=title,
@@ -31,4 +29,14 @@ class IncidentAgent:
             severity=severity,
         )
 
-        return await self._ai_service.analyze_incident(request)
+        prompt = self.prompt_manager.render_prompt(
+            "incident_analysis",
+            title=title,
+            description=description,
+            severity=severity,
+        )
+
+        return await self.ai_service.analyze_incident(
+            request=request,
+            prompt=prompt,
+        )
