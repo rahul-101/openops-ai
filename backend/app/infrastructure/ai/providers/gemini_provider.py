@@ -187,8 +187,10 @@ class GeminiProvider(AIService):
                         if status == 429:
                             raise ProviderRateLimitError(str(ex)) from ex
 
-                        if status in (500, 502, 503, 504):
-                            raise ProviderUnavailableError(str(ex)) from ex
+                        raise InvalidRequestError(str(ex)) from ex
+
+                    if isinstance(ex, genai_errors.ServerError):
+                        raise ProviderUnavailableError(str(ex)) from ex
 
                     if isinstance(ex, TimeoutError):
                         raise ProviderTimeoutError(str(ex)) from ex

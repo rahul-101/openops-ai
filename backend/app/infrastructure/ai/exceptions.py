@@ -1,50 +1,58 @@
+"""
+Provider-independent exception hierarchy for the AI Gateway.
+
+Providers translate SDK- or HTTP-specific errors into these exceptions.
+The AIRouter only depends on these domain exceptions.
+"""
+
+
 class AIProviderError(Exception):
     """
-    Base exception for all AI provider errors.
+    Base exception for all provider errors.
     """
 
 
 class RetryableProviderError(AIProviderError):
     """
-    A temporary failure.
+    Temporary error.
 
-    The router should try the next provider.
+    The router may safely try the next provider.
     """
 
 
 class NonRetryableProviderError(AIProviderError):
     """
-    A permanent failure.
+    Permanent error.
 
     The router should stop immediately.
     """
 
 
-class ProviderUnavailableError(RetryableProviderError):
-    """
-    Provider is temporarily unavailable.
-    """
+# ---------------------------------------------------------------------
+# Retryable
+# ---------------------------------------------------------------------
 
 
 class ProviderTimeoutError(RetryableProviderError):
-    """
-    Provider request timed out.
-    """
+    """Provider request timed out."""
 
 
 class ProviderRateLimitError(RetryableProviderError):
-    """
-    Provider exceeded rate limit.
-    """
+    """Provider rate limit exceeded."""
+
+
+class ProviderUnavailableError(RetryableProviderError):
+    """Provider temporarily unavailable."""
+
+
+# ---------------------------------------------------------------------
+# Non Retryable
+# ---------------------------------------------------------------------
 
 
 class AuthenticationError(NonRetryableProviderError):
-    """
-    Invalid API key or authentication.
-    """
+    """Invalid API key or authentication."""
 
 
 class InvalidRequestError(NonRetryableProviderError):
-    """
-    Invalid prompt or request payload.
-    """
+    """Invalid request or prompt."""

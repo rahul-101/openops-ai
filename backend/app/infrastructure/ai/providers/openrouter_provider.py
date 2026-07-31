@@ -11,6 +11,13 @@ from app.application.interfaces.ai_service import AIService
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.request_context import request_id_ctx
+from app.infrastructure.ai.exceptions import (
+    AuthenticationError,
+    InvalidRequestError,
+    ProviderRateLimitError,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
+)
 from app.infrastructure.ai.models.gemini_response import GeminiResponse
 
 
@@ -92,11 +99,28 @@ class OpenRouterProvider(AIService):
 
                 text = payload["choices"][0]["message"]["content"]
 
-                raw_data = json.loads(text)
+                if not text or not text.strip():
+                    raise InvalidRequestError(
+                        "OpenRouter returned an empty response."
+                    )
 
-                parsed = GeminiResponse.model_validate(
-                    raw_data
-                )
+                try:
+                    raw_data = json.loads(text)
+
+                except json.JSONDecodeError as ex:
+                    raise InvalidRequestError(
+                        f"OpenRouter returned invalid JSON:\n{text}"
+                    ) from ex
+
+                try:
+                    parsed = GeminiResponse.model_validate(
+                        raw_data
+                    )
+
+                except ValidationError as ex:
+                    raise InvalidRequestError(
+                        f"Response validation failed:\n{ex}"
+                    ) from ex
 
                 usage = payload.get(
                     "usage",
@@ -142,11 +166,6 @@ class OpenRouterProvider(AIService):
                     processing_time_ms=elapsed,
                 )
 
-            except ValidationError as ex:
-                raise ValueError(
-                    f"Response validation failed:\n{ex}"
-                ) from ex
-
             except Exception as ex:
 
                 last_exception = ex
@@ -163,10 +182,39 @@ class OpenRouterProvider(AIService):
                         "AI analysis failed after maximum retries",
                     )
 
+                    #
+                    # Convert OpenRouter/HTTPX exceptions
+                    # into provider-independent exceptions.
+                    #
+
+                    if isinstance(ex, httpx.HTTPStatusError):
+
+                        status = ex.response.status_code
+
+                        if status == 401:
+                            raise AuthenticationError(str(ex)) from ex
+
+                        if status == 400:
+                            raise InvalidRequestError(str(ex)) from ex
+
+                        if status == 429:
+                            raise ProviderRateLimitError(str(ex)) from ex
+
+                        if status in (500, 502, 503, 504):
+                            raise ProviderUnavailableError(str(ex)) from ex
+
+                        raise InvalidRequestError(str(ex)) from ex
+
+                    if isinstance(ex, httpx.TimeoutException):
+                        raise ProviderTimeoutError(str(ex)) from ex
+
+                    if isinstance(ex, httpx.ConnectError):
+                        raise ProviderUnavailableError(str(ex)) from ex
+
                     raise
 
                 backoff = self.INITIAL_BACKOFF * (
-                    2**attempt
+                    2 ** attempt
                 )
 
                 log.info(
