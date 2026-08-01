@@ -29,6 +29,15 @@ from app.infrastructure.ai.providers.openrouter_provider import (
     OpenRouterProvider,
 )
 
+from app.infrastructure.ai.registry.provider_metadata import (
+    ProviderCapability,
+    ProviderMetadata,
+)
+
+from app.infrastructure.ai.registry.provider_metadata_registry import (
+    ProviderMetadataRegistry,
+)
+
 from app.infrastructure.ai.registry.provider_registry import (
     ProviderRegistry,
 )
@@ -122,6 +131,59 @@ def get_provider_registry() -> ProviderRegistry:
 
 
 # ------------------------------------------------------------------
+# NEW
+# Provider Metadata Registry
+# ------------------------------------------------------------------
+
+
+@lru_cache
+def get_provider_metadata_registry() -> ProviderMetadataRegistry:
+
+    registry = ProviderMetadataRegistry()
+
+    registry.register(
+        ProviderMetadata(
+            name="gemini",
+            display_name="Google Gemini",
+            model="gemini-2.0-flash",
+            priority=1,
+            input_cost_per_1k_tokens=0.000075,
+            output_cost_per_1k_tokens=0.0003,
+            max_context_tokens=1_000_000,
+            capabilities=frozenset(
+                {
+                    ProviderCapability.TEXT_GENERATION,
+                    ProviderCapability.STRUCTURED_OUTPUT,
+                    ProviderCapability.FUNCTION_CALLING,
+                    ProviderCapability.STREAMING,
+                    ProviderCapability.LONG_CONTEXT,
+                }
+            ),
+        )
+    )
+
+    registry.register(
+        ProviderMetadata(
+            name="openrouter",
+            display_name="OpenRouter",
+            model=settings.OPENROUTER_MODEL,
+            priority=2,
+            input_cost_per_1k_tokens=0.0,
+            output_cost_per_1k_tokens=0.0,
+            max_context_tokens=8192,
+            capabilities=frozenset(
+                {
+                    ProviderCapability.TEXT_GENERATION,
+                    ProviderCapability.STREAMING,
+                }
+            ),
+        )
+    )
+
+    return registry
+
+
+# ------------------------------------------------------------------
 # Health Service
 # ------------------------------------------------------------------
 
@@ -152,7 +214,9 @@ def get_provider_metrics_service() -> ProviderMetricsService:
 @lru_cache
 def get_provider_scorer() -> ProviderScorer:
 
-    return ProviderScorer()
+    return ProviderScorer(
+        metadata_registry=get_provider_metadata_registry(),
+    )
 
 
 # ------------------------------------------------------------------
