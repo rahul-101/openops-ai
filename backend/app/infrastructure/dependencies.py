@@ -17,14 +17,14 @@ from app.infrastructure.ai.health.provider_health_service import (
     ProviderHealthService,
 )
 
-# ==========================================================
-# NEW: Metrics
-# ==========================================================
 from app.infrastructure.ai.metrics.provider_metrics_service import (
     ProviderMetricsService,
 )
 
-from app.infrastructure.ai.providers.gemini_provider import GeminiProvider
+from app.infrastructure.ai.providers.gemini_provider import (
+    GeminiProvider,
+)
+
 from app.infrastructure.ai.providers.openrouter_provider import (
     OpenRouterProvider,
 )
@@ -33,10 +33,20 @@ from app.infrastructure.ai.registry.provider_registry import (
     ProviderRegistry,
 )
 
-from app.infrastructure.ai.router.ai_router import AIRouter
+from app.infrastructure.ai.router.ai_router import (
+    AIRouter,
+)
 
 from app.infrastructure.ai.routing.priority_routing_policy import (
     PriorityRoutingPolicy,
+)
+
+from app.infrastructure.ai.routing.provider_scorer import (
+    ProviderScorer,
+)
+
+from app.infrastructure.ai.routing.routing_engine import (
+    RoutingEngine,
 )
 
 from app.infrastructure.repositories.memory.in_memory_incident_repository import (
@@ -54,9 +64,6 @@ from app.infrastructure.repositories.mongo.mongo_incident_repository import (
 
 
 def get_incident_repository() -> IncidentRepository:
-    """
-    Returns the configured repository implementation.
-    """
 
     if settings.REPOSITORY_TYPE.lower() == "mongo":
         return MongoIncidentRepository()
@@ -70,9 +77,6 @@ def get_incident_repository() -> IncidentRepository:
 
 
 def get_incident_service() -> IncidentService:
-    """
-    Returns the Incident CRUD service.
-    """
 
     return IncidentService(
         repository=get_incident_repository(),
@@ -94,6 +98,11 @@ def get_openrouter_provider() -> OpenRouterProvider:
     return OpenRouterProvider()
 
 
+# ------------------------------------------------------------------
+# Provider Registry
+# ------------------------------------------------------------------
+
+
 @lru_cache
 def get_provider_registry() -> ProviderRegistry:
 
@@ -113,43 +122,68 @@ def get_provider_registry() -> ProviderRegistry:
 
 
 # ------------------------------------------------------------------
-# Routing
+# Health Service
+# ------------------------------------------------------------------
+
+
+@lru_cache
+def get_provider_health_service() -> ProviderHealthService:
+
+    return ProviderHealthService()
+
+
+# ------------------------------------------------------------------
+# Metrics Service
+# ------------------------------------------------------------------
+
+
+@lru_cache
+def get_provider_metrics_service() -> ProviderMetricsService:
+
+    return ProviderMetricsService()
+
+
+# ------------------------------------------------------------------
+# NEW
+# Provider Scorer
+# ------------------------------------------------------------------
+
+
+@lru_cache
+def get_provider_scorer() -> ProviderScorer:
+
+    return ProviderScorer()
+
+
+# ------------------------------------------------------------------
+# NEW
+# Routing Engine
+# ------------------------------------------------------------------
+
+
+@lru_cache
+def get_routing_engine() -> RoutingEngine:
+
+    return RoutingEngine(
+        registry=get_provider_registry(),
+        health_service=get_provider_health_service(),
+        metrics_service=get_provider_metrics_service(),
+        scorer=get_provider_scorer(),
+    )
+
+
+# ------------------------------------------------------------------
+# Routing Policy
 # ------------------------------------------------------------------
 
 
 @lru_cache
 def get_routing_policy() -> PriorityRoutingPolicy:
+
     return PriorityRoutingPolicy(
         registry=get_provider_registry(),
+        routing_engine=get_routing_engine(),
     )
-
-
-# ==========================================================
-# Health Monitoring
-# ==========================================================
-
-
-@lru_cache
-def get_provider_health_service() -> ProviderHealthService:
-    """
-    Returns the singleton ProviderHealthService.
-    """
-
-    return ProviderHealthService()
-
-
-# ==========================================================
-# NEW: Provider Metrics
-# ==========================================================
-
-
-@lru_cache
-def get_provider_metrics_service() -> ProviderMetricsService:
-    """
-    Returns the singleton ProviderMetricsService.
-    """
-
-    return ProviderMetricsService()
 
 
 # ------------------------------------------------------------------
@@ -163,12 +197,7 @@ def get_ai_router() -> AIRouter:
     return AIRouter(
         registry=get_provider_registry(),
         routing_policy=get_routing_policy(),
-
         health_service=get_provider_health_service(),
-
-        # ==========================================================
-        # NEW: Metrics Service
-        # ==========================================================
         metrics_service=get_provider_metrics_service(),
     )
 

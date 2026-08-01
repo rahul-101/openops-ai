@@ -1,38 +1,45 @@
-from app.infrastructure.ai.registry.provider_registry import ProviderRegistry
-from app.infrastructure.ai.routing.routing_policy import RoutingPolicy
+from app.infrastructure.ai.registry.provider_registry import (
+    ProviderRegistry,
+)
+from app.infrastructure.ai.routing.routing_engine import (
+    RoutingEngine,
+)
+from app.infrastructure.ai.routing.routing_policy import (
+    RoutingPolicy,
+)
 
 
 class PriorityRoutingPolicy(RoutingPolicy):
     """
-    Selects the highest-priority available provider.
+    Determines the order in which AI providers
+    should be attempted.
 
-    Current priority:
-        1. Gemini
-        2. OpenRouter
-
-    Future versions can make this decision based on
-    health, latency, quotas, or cost.
+    The actual ranking logic is delegated to
+    the RoutingEngine.
     """
 
-    PRIORITY = [
-        "gemini",
-        "openrouter",
-    ]
+    def __init__(
+        self,
+        registry: ProviderRegistry,
+        routing_engine: RoutingEngine,
+    ) -> None:
 
-    def __init__(self, registry: ProviderRegistry):
         self.registry = registry
+        self.routing_engine = routing_engine
 
-    def get_provider_priority(self) -> list[str]:
+    def get_provider_priority(
+        self,
+    ) -> list[str]:
         """
-        Returns all registered providers in priority order.
+        Returns providers ordered by routing score.
+
+        If no providers are returned by the routing engine,
+        fall back to the registry order.
         """
-        providers = [
-            provider
-            for provider in self.PRIORITY
-            if self.registry.exists(provider)
-        ]
 
-        if not providers:
-            raise RuntimeError("No AI providers are registered.")
+        providers = self.routing_engine.rank_providers()
 
-        return providers
+        if providers:
+            return providers
+
+        return self.registry.list()
