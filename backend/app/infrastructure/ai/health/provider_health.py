@@ -1,10 +1,18 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+
+from app.infrastructure.ai.health.circuit_state import (
+    CircuitState,
+)
 
 
-class ProviderStatus(str, Enum):
+class ProviderStatus(str):
+    """
+    Logical provider health.
+    """
+
     HEALTHY = "healthy"
+
     UNHEALTHY = "unhealthy"
 
 
@@ -12,26 +20,56 @@ class ProviderStatus(str, Enum):
 class ProviderHealth:
     """
     Runtime health information for an AI provider.
+
+    Health indicates whether the provider is considered
+    healthy.
+
+    Circuit State determines whether requests may be
+    routed to the provider.
     """
 
     provider: str
 
-    status: ProviderStatus = ProviderStatus.HEALTHY
+    # ==========================================================
+    # Health
+    # ==========================================================
+
+    status: str = ProviderStatus.HEALTHY
+
+    # ==========================================================
+    # Circuit Breaker
+    # ==========================================================
+
+    circuit_state: CircuitState = (
+        CircuitState.CLOSED
+    )
+
+    opened_at: datetime | None = None
+
+    last_state_change: datetime | None = None
+
+    half_open_attempts: int = 0
+
+    # ==========================================================
+    # Failure Tracking
+    # ==========================================================
 
     consecutive_failures: int = 0
 
     consecutive_successes: int = 0
 
+    # ==========================================================
+    # Runtime Information
+    # ==========================================================
+
     last_failure: datetime | None = None
 
-    last_success: datetime |None = None
+    last_success: datetime | None = None
+
+    retry_after: datetime | None = None
 
     last_error: str | None = None
 
     updated_at: datetime = field(
         default_factory=datetime.utcnow
     )
-
-    # Earliest time at which an unhealthy provider
-    # may be retried.
-    retry_after: datetime | None = None

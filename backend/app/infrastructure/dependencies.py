@@ -66,6 +66,9 @@ from app.infrastructure.repositories.mongo.mongo_incident_repository import (
     MongoIncidentRepository,
 )
 
+from app.application.services.provider_monitoring_service import (
+    ProviderMonitoringService,
+)
 
 # ------------------------------------------------------------------
 # Repository
@@ -265,6 +268,18 @@ def get_ai_router() -> AIRouter:
         metrics_service=get_provider_metrics_service(),
     )
 
+# ------------------------------------------------------------------
+# Provider Monitoring Service
+# ------------------------------------------------------------------
+
+
+@lru_cache
+def get_provider_monitoring_service() -> ProviderMonitoringService:
+
+    return ProviderMonitoringService(
+        health_service=get_provider_health_service(),
+        metrics_service=get_provider_metrics_service(),
+    )
 
 # ------------------------------------------------------------------
 # AI Agent

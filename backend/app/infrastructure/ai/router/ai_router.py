@@ -16,9 +16,6 @@ from app.infrastructure.ai.health.provider_health_service import (
     ProviderHealthService,
 )
 
-# ==========================================================
-# NEW: Metrics
-# ==========================================================
 from app.infrastructure.ai.metrics.provider_metrics_service import (
     ProviderMetricsService,
 )
@@ -40,6 +37,7 @@ class AIRouter(AIService):
 
     - Intelligent provider failover
     - Provider health monitoring
+    - Circuit Breaker
     - Provider metrics collection
     """
 
@@ -48,10 +46,6 @@ class AIRouter(AIService):
         registry: ProviderRegistry,
         routing_policy: RoutingPolicy,
         health_service: ProviderHealthService,
-
-        # ==========================================================
-        # NEW: Metrics Service
-        # ==========================================================
         metrics_service: ProviderMetricsService,
     ) -> None:
 
@@ -60,9 +54,9 @@ class AIRouter(AIService):
         self.health_service = health_service
         self.metrics_service = metrics_service
 
-        # ==========================================================
+        #
         # Register providers with Health & Metrics
-        # ==========================================================
+        #
 
         for provider_name in registry.list():
 
@@ -92,17 +86,28 @@ class AIRouter(AIService):
 
         for provider_name in providers:
 
-            # ------------------------------------------------------
-            # Skip unhealthy providers
-            # ------------------------------------------------------
+            health = self.health_service.get_health(
+                provider_name
+            )
+
+            #
+            # Circuit Breaker / Health Check
+            #
 
             if not self.health_service.is_healthy(
                 provider_name
             ):
 
                 log.warning(
-                    "Skipping unhealthy AI provider.",
+                    "Skipping AI provider.",
                     provider=provider_name,
+                    health_status=health.status,
+                    circuit_state=health.circuit_state.value,
+                    retry_after=(
+                        health.retry_after.isoformat()
+                        if health.retry_after
+                        else None
+                    ),
                 )
 
                 continue
@@ -114,11 +119,8 @@ class AIRouter(AIService):
             log.info(
                 "Trying AI provider",
                 provider=provider_name,
+                circuit_state=health.circuit_state.value,
             )
-
-            # ======================================================
-            # NEW: Measure Provider Latency
-            # ======================================================
 
             start_time = perf_counter()
 
@@ -142,6 +144,12 @@ class AIRouter(AIService):
                     response_time_ms=elapsed_ms,
                 )
 
+                updated_health = (
+                    self.health_service.get_health(
+                        provider_name
+                    )
+                )
+
                 log.info(
                     "AI provider succeeded",
                     provider=provider_name,
@@ -149,6 +157,7 @@ class AIRouter(AIService):
                         elapsed_ms,
                         2,
                     ),
+                    circuit_state=updated_health.circuit_state.value,
                 )
 
                 return response
@@ -172,6 +181,12 @@ class AIRouter(AIService):
                     error=ex,
                 )
 
+                updated_health = (
+                    self.health_service.get_health(
+                        provider_name
+                    )
+                )
+
                 log.warning(
                     "Retryable provider failure. Trying next provider.",
                     provider=provider_name,
@@ -180,6 +195,8 @@ class AIRouter(AIService):
                         elapsed_ms,
                         2,
                     ),
+                    circuit_state=updated_health.circuit_state.value,
+                    consecutive_failures=updated_health.consecutive_failures,
                 )
 
                 continue
@@ -201,6 +218,12 @@ class AIRouter(AIService):
                     error=ex,
                 )
 
+                updated_health = (
+                    self.health_service.get_health(
+                        provider_name
+                    )
+                )
+
                 log.error(
                     "Non-retryable provider failure.",
                     provider=provider_name,
@@ -209,6 +232,8 @@ class AIRouter(AIService):
                         elapsed_ms,
                         2,
                     ),
+                    circuit_state=updated_health.circuit_state.value,
+                    consecutive_failures=updated_health.consecutive_failures,
                 )
 
                 raise

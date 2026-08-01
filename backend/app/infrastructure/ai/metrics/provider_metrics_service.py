@@ -24,11 +24,14 @@ class ProviderMetricsService:
     """
 
     def __init__(self):
+
         self._providers: dict[str, ProviderMetrics] = {}
+
         self._lock = Lock()
 
+
     # ==========================================================
-    # NEW: Provider Registration
+    # Provider Registration
     # ==========================================================
 
     def register_provider(
@@ -46,8 +49,9 @@ class ProviderMetricsService:
                     provider=provider_name,
                 )
 
+
     # ==========================================================
-    # NEW: Successful Request
+    # Successful Request
     # ==========================================================
 
     def mark_success(
@@ -63,6 +67,7 @@ class ProviderMetricsService:
             ]
 
             provider.total_requests += 1
+
             provider.successful_requests += 1
 
             provider.total_response_time_ms += (
@@ -75,15 +80,17 @@ class ProviderMetricsService:
 
             provider.average_response_time_ms = (
                 provider.total_response_time_ms
-                / provider.successful_requests
+                /
+                provider.successful_requests
             )
 
             provider.updated_at = datetime.utcnow()
 
             provider.last_error = None
 
+
     # ==========================================================
-    # NEW: Failed Request
+    # Failed Request
     # ==========================================================
 
     def mark_failure(
@@ -100,6 +107,7 @@ class ProviderMetricsService:
             ]
 
             provider.total_requests += 1
+
             provider.failed_requests += 1
 
             provider.last_response_time_ms = (
@@ -110,8 +118,9 @@ class ProviderMetricsService:
 
             provider.updated_at = datetime.utcnow()
 
+
     # ==========================================================
-    # NEW: Accessors
+    # Accessors
     # ==========================================================
 
     def get_metrics(
@@ -122,6 +131,7 @@ class ProviderMetricsService:
         return self._providers[
             provider_name
         ]
+
 
     def get_all(
         self,
