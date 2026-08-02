@@ -1,27 +1,5 @@
 <div align="center">
 
-<style>
-:root{
-  --bg:#05060f;--panel:#0b0f1e;--border:#1a2340;
-  --cyan:#00e5ff;--magenta:#ff2ec4;--green:#00ff9c;
-  --violet:#a855f7;--amber:#ffb86c;--red:#ff5470;
-  --text:#e6e9f5;--muted:#8b93b0;
-}
-*{box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.6}
-h1,h2,h3{color:var(--text)}
-h2{border-bottom:1px solid var(--border);padding-bottom:8px;margin-top:40px}
-h2::before{content:"◆ ";color:var(--cyan);text-shadow:0 0 8px var(--cyan)}
-a{color:var(--cyan)}
-code{background:#131a33;border:1px solid var(--border);border-radius:6px;padding:2px 6px;color:var(--green)}
-pre{background:#0a0e1f;border:1px solid var(--border);border-radius:12px;padding:16px;overflow-x:auto}
-table{border-collapse:collapse;width:100%;margin:12px 0}
-th,td{border:1px solid var(--border);padding:10px 14px;text-align:left}
-th{background:#0f1630;color:var(--cyan);text-transform:uppercase;font-size:.78em;letter-spacing:1px}
-blockquote{border-left:3px solid var(--cyan);background:#0b0f1e;padding:8px 16px;color:var(--muted)}
-hr{border:none;height:1px;background:linear-gradient(90deg,var(--cyan),var(--magenta),transparent)}
-</style>
-
 <h1 style="font-size:42px;margin:32px 0 8px;background:linear-gradient(90deg,#00e5ff,#ff2ec4);-webkit-background-clip:text;background-clip:text;color:transparent">🔴 CURRENT STATE</h1>
 <p style="color:#8b93b0;letter-spacing:3px;text-transform:uppercase;font-size:13px">Live Project Status · Backend</p>
 
