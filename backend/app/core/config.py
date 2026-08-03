@@ -17,6 +17,11 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: str = "INFO"
 
+    # Seed realistic demo data (alerts, lifecycle runs, agent
+    # analytics, model usage, knowledge docs) on application
+    # startup so the frontend is populated without manual setup.
+    SEED_DEMO_DATA: bool = True
+
     # Repository configuration
     REPOSITORY_TYPE: str = "memory"
 
@@ -63,6 +68,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         case_sensitive=True,
+        extra="ignore",
     )
 
 

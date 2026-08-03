@@ -218,6 +218,23 @@ def search_knowledge(
 
 
 @router.get(
+    "/documents",
+    summary="List knowledge documents",
+)
+def list_documents(
+    limit: int = 50,
+    knowledge: KnowledgeBaseService = Depends(
+        get_knowledge_base_service,
+    ),
+):
+
+    return [
+        _document_response(document)
+        for document in knowledge.list(limit=limit)
+    ]
+
+
+@router.get(
     "/documents/{document_id}",
     summary="Get a knowledge document by id",
 )

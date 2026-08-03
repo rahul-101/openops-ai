@@ -8,6 +8,7 @@ from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import configure_logging, logger
 from app.core.middleware import RequestLoggingMiddleware
 from app.infrastructure.dependencies import get_provider_bootstrap
+from app.infrastructure.demo_seed import seed_demo_data
 
 
 @asynccontextmanager
@@ -19,6 +20,9 @@ async def lifespan(app: FastAPI):
     configure_logging()
 
     get_provider_bootstrap().run()
+
+    if settings.SEED_DEMO_DATA:
+        await seed_demo_data()
 
     logger.info(
         "Application started",

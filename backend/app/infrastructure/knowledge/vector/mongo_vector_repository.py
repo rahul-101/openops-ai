@@ -58,6 +58,26 @@ class MongoVectorRepository(VectorRepository):
             {"id": document_id}
         )
 
+    def list(
+        self,
+        limit: int | None = None,
+    ) -> list[KnowledgeDocument]:
+
+        cursor = self.collection.find(
+            {},
+            {"embedding": 0},
+        ).sort(
+            "created_at", -1
+        )
+
+        if limit is not None:
+            cursor = cursor.limit(limit)
+
+        return [
+            self._from_document(document)
+            for document in cursor
+        ]
+
     def search(
         self,
         embedding: list[float],

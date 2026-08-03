@@ -34,6 +34,13 @@ class VectorRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def list(
+        self,
+        limit: int | None = None,
+    ) -> list[KnowledgeDocument]:
+        raise NotImplementedError
+
+    @abstractmethod
     def search(
         self,
         embedding: list[float],

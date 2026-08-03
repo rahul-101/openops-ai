@@ -1,4 +1,5 @@
 import math
+from datetime import datetime
 from threading import Lock
 
 from app.infrastructure.knowledge.models import (
@@ -46,6 +47,24 @@ class InMemoryVectorRepository(VectorRepository):
 
         with self._lock:
             self._documents.pop(document_id, None)
+
+    def list(
+        self,
+        limit: int | None = None,
+    ) -> list[KnowledgeDocument]:
+
+        with self._lock:
+            documents = list(self._documents.values())
+
+        documents.sort(
+            key=lambda d: d.created_at or datetime.min,
+            reverse=True,
+        )
+
+        if limit is not None:
+            documents = documents[:limit]
+
+        return documents
 
     def search(
         self,

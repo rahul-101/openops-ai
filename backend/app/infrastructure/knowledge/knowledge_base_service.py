@@ -182,6 +182,13 @@ class KnowledgeBaseService:
 
         return self.repository.get(document_id)
 
+    def list(
+        self,
+        limit: int | None = None,
+    ) -> list[KnowledgeDocument]:
+
+        return self.repository.list(limit=limit)
+
     def delete(
         self,
         document_id: str,

@@ -763,16 +763,19 @@ def get_tool_registry() -> ToolRegistry:
     )
     from app.infrastructure.tools.slack.slack_tool import SlackTool
     from app.infrastructure.tools.teams.teams_tool import TeamsTool
+    from app.infrastructure.tools.transport import SimulatedTransport
 
     registry = ToolRegistry()
 
-    registry.register(ServiceNowTool())
-    registry.register(JiraTool())
-    registry.register(AWSTool())
-    registry.register(AzureTool())
-    registry.register(KubernetesTool())
-    registry.register(SlackTool())
-    registry.register(TeamsTool())
+    demo = SimulatedTransport()
+
+    registry.register(ServiceNowTool(transport=demo))
+    registry.register(JiraTool(transport=demo))
+    registry.register(AWSTool(transport=demo))
+    registry.register(AzureTool(transport=demo))
+    registry.register(KubernetesTool(transport=demo))
+    registry.register(SlackTool(transport=demo))
+    registry.register(TeamsTool(transport=demo))
 
     return registry
 
@@ -1029,6 +1032,42 @@ steps:
     action: restart
     risk_level: medium
     auto_execute: false
+"""
+    )
+
+    # Fully autonomous playbook — every step is low-risk (auto-executed),
+    # so a matching alert completes the lifecycle with ZERO human approval.
+    engine.load_yaml(
+        """
+name: kubernetes_health_check
+description: Low-risk health inspection of a Kubernetes workload
+version: 1.0.0
+match:
+  source: kubernetes
+  severities:
+    - low
+    - medium
+  tags:
+    - health
+    - status
+steps:
+  - name: check_pod_status
+    tool: kubernetes
+    action: pod_status
+    risk_level: low
+    auto_execute: true
+  - name: fetch_logs
+    tool: kubernetes
+    action: logs
+    parameters:
+      pod_name: payments-7d9b5c4f6-2xk9p
+    risk_level: low
+    auto_execute: true
+  - name: create_snow_incident
+    tool: servicenow
+    action: create_incident
+    risk_level: low
+    auto_execute: true
 """
     )
 

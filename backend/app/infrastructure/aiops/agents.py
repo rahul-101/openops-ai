@@ -266,6 +266,40 @@ class ExecutionAgent(AIOpsAgent):
 
         if not action.approved:
 
+            from app.infrastructure.governance.models import (
+                ActionDecision,
+            )
+            from app.infrastructure.tools.models import (
+                ToolExecutionContext,
+            )
+
+            parameters = dict(action.parameters)
+
+            parameters.setdefault("action", action.action)
+
+            approval_id = None
+
+            approval_workflow = getattr(
+                self.executor,
+                "approval",
+                None,
+            )
+
+            if (
+                action.decision == ActionDecision.APPROVAL_REQUIRED
+                and approval_workflow is not None
+            ):
+
+                approval = approval_workflow.request(
+                    tool_name=action.tool,
+                    parameters=parameters,
+                    context={
+                        "incident_id": context.incident_id,
+                    },
+                )
+
+                approval_id = approval.id
+
             return {
                 "tool": action.tool,
                 "action": action.action,
@@ -274,15 +308,22 @@ class ExecutionAgent(AIOpsAgent):
                 "error": (
                     "Action not approved for execution."
                 ),
+                "data": {
+                    "approval_id": approval_id,
+                },
             }
 
         from app.infrastructure.tools.models import (
             ToolExecutionContext,
         )
 
+        parameters = dict(action.parameters)
+
+        parameters.setdefault("action", action.action)
+
         tool_result = await self.executor.execute(
             tool_name=action.tool,
-            parameters=action.parameters,
+            parameters=parameters,
             context=ToolExecutionContext(
                 incident_id=context.incident_id,
             ),
