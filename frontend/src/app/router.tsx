@@ -20,6 +20,7 @@ import { ModelsPage } from "@/features/models/models-page"
 import { IntegrationsPage } from "@/features/integrations/integrations-page"
 import { SystemHealthPage } from "@/features/health/system-health-page"
 import { UsersPage } from "@/features/users/users-page"
+import { ApprovalsPage } from "@/features/approvals/approvals-page"
 import { SettingsPage } from "@/features/settings/settings-page"
 import { ProfilePage } from "@/features/settings/profile-page"
 import { NotFoundPage } from "@/features/misc/not-found-page"
@@ -38,6 +39,7 @@ export function AppRoutes() {
           <Route path="/pipelines" element={<SetupPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/tasks" element={<IncidentsPage />} />
+          <Route path="/approvals" element={<ApprovalsPage />} />
           <Route path="/incidents" element={<IncidentsPage />} />
           <Route path="/incidents/:id" element={<IncidentDetailPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />

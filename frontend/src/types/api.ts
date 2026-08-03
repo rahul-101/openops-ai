@@ -267,3 +267,19 @@ export interface AuditEntry {
   decision?: string
   timestamp?: string
 }
+
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "executed"
+
+export interface Approval {
+  id: string
+  tool_name: string
+  parameters: Record<string, unknown>
+  context: Record<string, unknown>
+  status: ApprovalStatus
+  requested_by: string | null
+  approved_by: string | null
+  reason: string | null
+  result: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}

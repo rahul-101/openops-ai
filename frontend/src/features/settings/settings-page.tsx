@@ -1,12 +1,17 @@
 import { useTheme } from "@/components/theme-provider"
 import { PageHeader } from "@/components/shared/page-header"
 import { CardShell } from "@/components/shared/card-shell"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { feClient } from "@/services/api"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useState } from "react"
+import { cn } from "@/lib/utils"
+import type { ProviderMetadata } from "@/types/api"
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -94,6 +99,10 @@ export function SettingsPage() {
           </div>
         </CardShell>
 
+        <CardShell title="Governance" description="Live risk and model policy from the autonomous pipeline">
+          <GovernanceCard />
+        </CardShell>
+
         <CardShell title="Danger zone" description="Irreversible actions">
           <div className="flex items-center justify-between rounded-lg border border-destructive/30 p-3">
             <div>
@@ -105,6 +114,58 @@ export function SettingsPage() {
             </Button>
           </div>
         </CardShell>
+      </div>
+    </div>
+  )
+}
+
+const riskStyles: Record<string, string> = {
+  low: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
+  medium: "border-amber-500/30 bg-amber-500/10 text-amber-600",
+  high: "border-destructive/30 bg-destructive/10 text-destructive",
+}
+
+function GovernanceCard() {
+  const policy = useQuery({
+    queryKey: ["settings", "policy"],
+    queryFn: () => feClient.get<Record<string, string>>("/governance/approval-policy/actions"),
+  })
+  const providers = useQuery({
+    queryKey: ["settings", "providers"],
+    queryFn: () => feClient.get<ProviderMetadata[]>("/providers"),
+  })
+
+  const entries = Object.entries(policy.data ?? {})
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action risk policy</p>
+        <div className="divide-y rounded-lg border">
+          {entries.length === 0 && <p className="px-3 py-2 text-sm text-muted-foreground">Loading policy…</p>}
+          {entries.map(([action, risk]) => (
+            <div key={action} className="flex items-center justify-between px-3 py-2">
+              <span className="font-mono text-xs">{action}</span>
+              <Badge variant="outline" className={cn("px-2 py-0.5 text-[10px]", riskStyles[risk] ?? "bg-muted text-muted-foreground")}>
+                {risk}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active model providers</p>
+        <div className="space-y-2">
+          {(providers.data ?? []).map((p) => (
+            <div key={p.name} className="flex items-center justify-between rounded-lg border p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{p.display_name ?? p.name}</p>
+                <p className="truncate font-mono text-xs text-muted-foreground">{p.model}</p>
+              </div>
+              <Badge variant={p.enabled ? "default" : "secondary"}>{p.enabled ? "Enabled" : "Disabled"}</Badge>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

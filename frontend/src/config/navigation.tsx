@@ -14,6 +14,7 @@ import {
   ScrollText,
   Server,
   Settings,
+  ShieldCheck,
   User,
   Users,
   Workflow,
@@ -51,6 +52,7 @@ export const navigationGroups: NavGroup[] = [
       { title: "Pipelines", href: "/pipelines", icon: Boxes },
       { title: "Alerts", href: "/alerts", icon: Inbox },
       { title: "Tasks", href: "/tasks", icon: ListChecks },
+      { title: "Approvals", href: "/approvals", icon: ShieldCheck, match: "/approvals" },
     ],
   },
   {
