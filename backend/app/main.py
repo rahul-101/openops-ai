@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import configure_logging, logger
 from app.core.middleware import RequestLoggingMiddleware
+from app.infrastructure.dependencies import get_provider_bootstrap
 
 
 @asynccontextmanager
@@ -16,6 +17,8 @@ async def lifespan(app: FastAPI):
     """
 
     configure_logging()
+
+    get_provider_bootstrap().run()
 
     logger.info(
         "Application started",

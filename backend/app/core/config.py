@@ -26,6 +26,9 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: str = ""
 
+    # Redis cache connection (optional; in-memory fallback)
+    CACHE_URL: str = ""
+
 # ------------------------------------------------------------------
 # OpenRouter
 # ------------------------------------------------------------------
@@ -33,6 +36,29 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openrouter/free"
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+
+# ------------------------------------------------------------------
+# Embeddings & Knowledge Base
+# ------------------------------------------------------------------
+
+    # "hashing" (local, deterministic) or "gemini"
+    EMBEDDING_PROVIDER: str = "hashing"
+    EMBEDDING_MODEL: str = "text-embedding-004"
+    EMBEDDING_DIMENSION: int = 768
+
+    KNOWLEDGE_COLLECTION: str = "knowledge_vectors"
+    VECTOR_SEARCH_INDEX: str = "vector_index"
+    INCIDENT_MEMORY_COLLECTION: str = "incident_memory"
+
+# ------------------------------------------------------------------
+# Google ADK bridge
+# ------------------------------------------------------------------
+
+    # Default model used by ADK-wrapped agents. Leave empty to let
+    # the google-adk SDK fall back to its own default model.
+    ADK_MODEL: str = ""
+    ADK_APP_NAME: str = "openops"
+    ADK_SESSION_TIMEOUT_S: int = 30
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

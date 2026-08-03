@@ -42,7 +42,7 @@ class IncidentMapper:
             created_at=incident.created_at,
             updated_at=incident.updated_at,
         )
-    
+
     @staticmethod
     def to_paginated_response(
         page: Page[Incident],
@@ -60,4 +60,3 @@ class IncidentMapper:
             has_next=page.has_next,
             has_previous=page.has_previous,
         )
-    

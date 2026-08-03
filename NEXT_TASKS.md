@@ -9,54 +9,65 @@
 
 # 🚀 Next Tasks — Phase 21+
 
-> The backend is feature-complete through **Phase 20**. These tasks complete the remaining scaffolding into production-grade subsystems.
+> The backend is feature-complete through **Phase 20**. The next phases complete the remaining scaffolding into production-grade subsystems.
 
 ---
 
-## 🎯 Phase 21 — Distributed Caching
+## ✅ Phase 21 — Distributed Caching (Completed)
 
-| # | Task | Priority |
-|---|---|---|
-| 1 | Implement `CacheService` abstraction (get/set/delete/ttl) | 🔴 High |
-| 2 | Implement `RedisCache` adapter (pipeline-safe, serialization) | 🔴 High |
-| 3 | Implement `SemanticCache` for AI responses (embedding-keyed) | 🟠 Medium |
-| 4 | Implement `PromptCache` (version + hash keyed) | 🟠 Medium |
-| 5 | Implement `CacheKeyBuilder` (deterministic key schema) | 🟢 Low |
-| 6 | Wire cache into AI router + incident service | 🟠 Medium |
-| 7 | Add tests in `tests/cache/` (currently empty) | 🔴 High |
-
----
-
-## 🎯 Phase 22 — Distributed Tracing
-
-| # | Task | Priority |
-|---|---|---|
-| 1 | Implement `Tracer` (OpenTelemetry-based spans) | 🔴 High |
-| 2 | Implement `SpanBuilder` (attributes, events, hierarchy) | 🔴 High |
-| 3 | Instrument AI requests, tool executions, workflow steps | 🟠 Medium |
-| 4 | Export traces to console / OTLP collector | 🟢 Low |
-| 5 | Add tests in `tests/tracing/` (currently empty) | 🔴 High |
+| # | Task | Priority | Status |
+|---|---|---|---|
+| 1 | Implement `CacheService` abstraction (get/set/delete/ttl) | 🔴 High | ✅ |
+| 2 | Implement `RedisCache` adapter (pipeline-safe, serialization) | 🔴 High | ✅ |
+| 3 | Implement `SemanticCache` for AI responses (embedding-keyed) | 🟠 Medium | ✅ |
+| 4 | Implement `PromptCache` (version + hash keyed) | 🟠 Medium | ✅ |
+| 5 | Implement `CacheKeyBuilder` (deterministic key schema) | 🟢 Low | ✅ |
+| 6 | Wire cache into AI router + incident service | 🟠 Medium | ✅ |
+| 7 | Add tests in `tests/cache/` | 🔴 High | ✅ |
 
 ---
 
-## 🎯 Phase 23 — Google ADK Bridge
+## ✅ Phase 22 — Distributed Tracing (Completed)
 
-| # | Task | Priority |
-|---|---|---|
-| 1 | Implement `AdkAgent` adapter over google-adk | 🔴 High |
-| 2 | Implement `AdkOrchestrator` (map ADK to agent framework) | 🔴 High |
-| 3 | Register ADK agents in `AgentRegistry` | 🟠 Medium |
-| 4 | Add tests in `tests/adk/` (currently empty) | 🔴 High |
+| # | Task | Priority | Status |
+|---|---|---|---|
+| 1 | Implement `Tracer` (OpenTelemetry-based spans) | 🔴 High | ✅ |
+| 2 | Implement `SpanBuilder` (attributes, events, hierarchy) | 🔴 High | ✅ |
+| 3 | Instrument AI requests, tool executions, workflow steps | 🟠 Medium | ✅ |
+| 4 | Export traces to console / OTLP collector | 🟢 Low | ✅ |
+| 5 | Add tests in `tests/tracing/` | 🔴 High | ✅ |
 
 ---
 
-## 🎯 Phase 24 — Provider Management & Routing APIs
+## ✅ Phase 23 — Google ADK Bridge (Completed)
 
-| # | Task | Priority |
-|---|---|---|
-| 1 | Implement `provider_management.py` route (CRUD providers) | 🔴 High |
-| 2 | Implement `routing_api.py` route (dynamic routing policies) | 🟠 Medium |
-| 3 | Add API tests (currently empty) | 🔴 High |
+| # | Task | Priority | Status |
+|---|---|---|---|
+| 1 | Implement `AdkAgent` adapter over google-adk | 🔴 High | ✅ |
+| 2 | Implement `AdkOrchestrator` (map ADK to agent framework) | 🔴 High | ✅ |
+| 3 | Register ADK agents in `AgentRegistry` | 🟠 Medium | ✅ |
+| 4 | Add tests in `tests/adk/` | 🔴 High | ✅ |
+
+---
+
+## ✅ Phase 24 — Provider Management & Routing APIs (Completed)
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| 1 | Implement `provider_management.py` route (CRUD providers) | 🔴 High | ✅ |
+| 2 | Implement `routing_api.py` route (dynamic routing policies) | 🟠 Medium | ✅ |
+| 3 | Add API tests | 🔴 High | ✅ |
+
+---
+
+## ✅ Housekeeping (Completed)
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| 1 | Populate `backend/requirements/` and consolidate pinned deps | 🟠 Medium | ✅ |
+| 2 | Fill config files — `pyproject` (ruff/mypy), `Makefile`, `LICENSE`, `.pre-commit` | 🟠 Medium | ✅ |
+| 3 | Clean up duplicate agent names via module aliasing | 🟢 Low | ✅ |
+| 4 | Add `docker-compose.yml` for Mongo + Redis + app + prometheus | 🟢 Low | ✅ |
 
 ---
 
@@ -71,17 +82,15 @@
 
 ---
 
-## 🎯 Housekeeping
+## 🎯 Quality Debt
 
 | # | Task | Priority |
 |---|---|---|
-| 1 | Populate `backend/requirements/` and consolidate pinned deps | 🟠 Medium |
-| 2 | Fill in `mypy.ini`, `ruff.toml`, `.pre-commit-config.yaml`, `Makefile`, `LICENSE` | 🟠 Medium |
-| 3 | Clean up duplicate agent names via module aliasing | 🟢 Low |
-| 4 | Add `docker-compose.yml` for Mongo + app + prometheus | 🟢 Low |
+| 1 | Annotate API request/route models to clear mypy `arg-type` errors | 🟠 Medium |
+| 2 | Enable stricter ruff rule sets (`B`, `SIM`, `UP`, `N`) once clean | 🟢 Low |
 
 ---
 
 <div align="center">
-<span style="color:#00ff9c">Current gate: 471 tests passing</span> · <span style="color:#8b93b0">Next: Cache layer (Phase 21)</span>
+<span style="color:#00ff9c">Current gate: 558 tests passing</span> · <span style="color:#8b93b0">Next: Frontend Command Center (Phase 25)</span>
 </div>

@@ -83,7 +83,36 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+src = ["backend"]
+exclude = ["**/__pycache__", ".venv"]
+
+[tool.ruff.lint]
+# Covers syntax errors (E9), pyflakes (F), and common pycodestyle
+# violations. Broader rule sets (B, SIM, UP, N) can be enabled later.
+select = ["E4", "E7", "E9", "F", "W"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
+mypy_path = "backend"
+# Route bodies are currently unannotated, so defer the strict flags
+# (check_untyped_defs / warn_return_any / warn_unused_ignores) until
+# request models are fully typed. Enabled as `mypy backend/app`.
+check_untyped_defs = false
+warn_return_any = false
+files = ["backend/app"]
+exclude = ["backend/tests"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true

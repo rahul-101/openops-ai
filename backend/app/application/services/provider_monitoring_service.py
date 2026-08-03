@@ -48,8 +48,10 @@ class ProviderMonitoringService:
             providers.append(
                 ProviderHealthResponse(
                     provider=health.provider,
-                    status=health.status.value,
-                    circuit_state=health.circuit_state.value,
+                    status=health.status,
+                    circuit_state=(
+                        health.circuit_state.value
+                    ),
                     consecutive_failures=(
                         health.consecutive_failures
                     ),

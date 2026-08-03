@@ -1,0 +1,12 @@
+# Development / test tooling.
+-r  backend/requirements/runtime.txt
+
+pytest>=9.1
+pytest-asyncio>=1.4
+pytest-cov>=6.0
+
+black>=26.5
+ruff>=0.16
+mypy>=2.3
+
+pre-commit>=4.6

@@ -9,7 +9,7 @@
 
 # 🔄 Current State — OpenOps AI
 
-> Status snapshot based on the actual backend implementation. **20 of 21+ planned phases are implemented and green (471 tests passing).**
+> Status snapshot based on the actual backend implementation. **21 of 21+ planned phases are implemented and green (558 tests passing).**
 
 ---
 
@@ -63,25 +63,32 @@
 | `ExecutionMonitor` / `OperationsDashboard` | ✅ |
 | `/operations/*` API (stream, dashboard, metrics) | ✅ |
 
+### Distributed Systems — Phases 21–24
+
+| Module | Status |
+|---|---|
+| Cache layer — `CacheService`, `RedisCache`, `SemanticCache`, `PromptCache`, `CacheKeyBuilder` | ✅ |
+| Distributed tracing — `Tracer`, `SpanBuilder` (OpenTelemetry) | ✅ |
+| Google ADK bridge — `AdkAgent`, `AdkOrchestrator`, registry wiring | ✅ |
+| Provider management API — `provider_management.py` | ✅ |
+| Routing API — `routing_api.py` | ✅ |
+
 ---
 
 ## 🔜 In Progress / Next
 
 | Area | Status | Notes |
 |---|---|---|
-| **Cache layer** | 🔄 Planned | 5 modules scaffolded (empty): Redis cache, semantic cache, prompt cache, cache-key builder |
-| **Distributed tracing** | 🔄 Planned | `tracer.py`, `span_builder.py` scaffolded (empty) |
-| **Google ADK bridge** | 🔄 Planned | `adk_agent.py`, `adk_orchestrator.py` scaffolded (empty) |
-| **Provider management API** | 🔄 Planned | `provider_management.py` route is an empty placeholder |
-| **Routing API** | 🔄 Planned | `routing_api.py` route is an empty placeholder |
-| **Frontend** | 🔄 Planned | React shell scaffolded, not yet implemented |
+| **Frontend** | 🔄 Planned | React shell scaffolded (empty `frontend/`), not yet implemented |
+| **mypy type debt** | 🔄 Planned | 50+ pre-existing mypy errors in unannotated API routes |
+| **Docker + tooling config** | ✅ | `Makefile`, `LICENSE`, `docker-compose.yml`, ruff/mypy config filled |
 
 ---
 
 ## 📊 Quality Gate
 
 ```text
-471 passed, 0 failed · 15+ test suites · 70 test files · ~10,700 LOC of tests
+558 passed, 0 failed · 18+ test suites · 80 test files
 ```
 
 | Suite | Tests | Status |
@@ -99,14 +106,14 @@
 
 ## ⚠️ Known Gaps
 
-1. **Empty placeholders** — `infrastructure/cache/*`, `infrastructure/tracing/*`, `infrastructure/adk/*`, `routes/provider_management.py`, `routes/routing_api.py`.
-2. **Empty test files** — 8 test files under `adk/`, `api/`, `cache/`, `tracing/`.
-3. **Duplicate agent names across domains** — `IncidentAgent` / `RcaAgent` / `VerificationAgent` / `DecisionAgent` exist in `aiops` and `reasoning`; disambiguated via aliases in `dependencies.py`.
-4. **Empty placeholder directories** — `backend/requirements/`, repo-root config files (`mypy.ini`, `ruff.toml`, `.pre-commit-config.yaml`, `Makefile`, `LICENSE`) are 0-byte.
+1. **Frontend** — `frontend/` is an empty scaffold; no React command center yet.
+2. **mypy type debt** — ~58 pre-existing typing errors concentrated in API route modules; deferred until request models are fully annotated.
+3. **Duplicate agent names across domains** — `IncidentAgent` / `RcaAgent` / `VerificationAgent` / `DecisionAgent` exist in `aiops` and `reasoning`; disambiguated via aliases in `dependencies.py` (`AioOps*` / `Reasoning*`).
+4. **Repo metadata** — `CHANGELOG.md` and roadmap docs need refreshing alongside new phases.
 
 ---
 
 <div align="center">
 <strong style="color:#00ff9c">All implemented phases are verified green.</strong><br>
-<span style="color:#8b93b0">Next milestone → Phase 21: Cache · Tracing · ADK bridge</span>
+<span style="color:#8b93b0">Next milestone → Phase 25: Frontend Command Center</span>
 </div>

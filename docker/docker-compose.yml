@@ -1,0 +1,60 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: openops_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: openops_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: openops_app
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: "OpenOps AI"
+      ENVIRONMENT: "development"
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      REPOSITORY_TYPE: "memory"
+      MONGODB_URI: "mongodb://mongo:27017"
+      DATABASE_NAME: "openops"
+      CACHE_URL: "redis://redis:6379/0"
+      EMBEDDING_PROVIDER: "hashing"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      OPENROUTER_MODEL: "${OPENROUTER_MODEL:-openrouter/free}"
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: openops_prometheus
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+volumes:
+  mongo_data:
+  redis_data:
+  prometheus_data:

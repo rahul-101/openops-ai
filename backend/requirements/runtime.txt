@@ -1,0 +1,21 @@
+# Runtime dependencies for the OpenOps AI backend.
+fastapi>=0.140,<1.0
+uvicorn[standard]>=0.51,<1.0
+pydantic>=2.13,<3.0
+pydantic-settings>=2.14,<3.0
+structlog>=26.1,<27.0
+httpx>=0.28,<1.0
+tenacity>=9.1,<10.0
+
+# Persistence
+pymongo>=4.17,<5.0
+motor>=3.7,<4.0
+
+# Google ADK bridge
+google-adk>=2.5,<3.0
+google-genai>=2.14,<3.0
+
+# Telemetry
+opentelemetry-api>=1.42
+opentelemetry-sdk>=1.42
+opentelemetry-semantic-conventions>=0.63
