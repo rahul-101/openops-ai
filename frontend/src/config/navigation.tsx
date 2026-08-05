@@ -38,7 +38,7 @@ export const navigationGroups: NavGroup[] = [
   {
     label: "Overview",
     items: [
-      { title: "Dashboard", href: "/", icon: LayoutDashboard, match: "/" },
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: "/dashboard" },
       { title: "Operation Overview", href: "/overview", icon: Activity },
       { title: "AI Command Center", href: "/command-center", icon: Bot },
       { title: "AI Chat", href: "/chat", icon: MessageSquare },
@@ -53,6 +53,7 @@ export const navigationGroups: NavGroup[] = [
       { title: "Alerts", href: "/alerts", icon: Inbox },
       { title: "Tasks", href: "/tasks", icon: ListChecks },
       { title: "Approvals", href: "/approvals", icon: ShieldCheck, match: "/approvals" },
+      { title: "Playbooks", href: "/playbooks", icon: ScrollText },
     ],
   },
   {
@@ -71,6 +72,7 @@ export const navigationGroups: NavGroup[] = [
       { title: "Integrations", href: "/integrations", icon: Plug },
       { title: "System Health", href: "/health", icon: Server },
       { title: "Users & Roles", href: "/users", icon: Users },
+      { title: "Model Governance", href: "/governance", icon: ShieldCheck, match: "/governance" },
     ],
   },
 ]

@@ -3,6 +3,8 @@ from fastapi import APIRouter
 from app.api.v1.health import router as health_router
 from app.api.v1.incident_analysis import router as incident_analysis_router
 from app.api.v1.incidents import router as incident_router
+from app.api.v1.users import router as users_router
+from app.api.routes.admin import router as admin_router
 from app.api.routes.ai_monitoring import (
     router as ai_monitoring_router,
 )
@@ -49,8 +51,10 @@ from app.api.routes.chat import (
 api_router = APIRouter()
 
 api_router.include_router(health_router)
+api_router.include_router(admin_router)
 api_router.include_router(incident_router)
 api_router.include_router(incident_analysis_router)
+api_router.include_router(users_router)
 api_router.include_router(
     ai_monitoring_router,
 )

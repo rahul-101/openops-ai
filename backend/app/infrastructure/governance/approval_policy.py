@@ -1,5 +1,7 @@
 from threading import Lock
+from typing import Optional
 
+from app.core.config import settings
 from app.infrastructure.governance.exceptions import (
     BlockedActionError,
 )
@@ -7,6 +9,7 @@ from app.infrastructure.governance.models import (
     ActionDecision,
     RiskLevel,
 )
+from app.infrastructure.persistence.mongodb import get_database
 
 
 class ApprovalPolicyEngine:
@@ -27,6 +30,16 @@ class ApprovalPolicyEngine:
 
         self._lock = Lock()
 
+        self._mongo_repo = None
+        if settings.REPOSITORY_TYPE.lower() == "mongo":
+            from app.infrastructure.governance.mongo_approval_repository import (
+                MongoApprovalRepository,
+            )
+            self._mongo_repo = MongoApprovalRepository()
+            # Load from MongoDB
+            loaded = self._mongo_repo.get_all_actions()
+            self._actions.update(loaded)
+
     def register_action(
         self,
         action: str,
@@ -35,6 +48,9 @@ class ApprovalPolicyEngine:
 
         with self._lock:
             self._actions[action.lower()] = risk_level
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.save_action(action, risk_level)
 
     def risk_level(
         self,
@@ -78,6 +94,14 @@ class ApprovalPolicyEngine:
             )
 
         return decision
+
+    def clear(self) -> None:
+
+        with self._lock:
+            self._actions.clear()
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.clear()
 
     def actions(self) -> dict[str, RiskLevel]:
 

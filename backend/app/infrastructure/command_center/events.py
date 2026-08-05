@@ -5,7 +5,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from threading import Lock
+from typing import Optional
 from uuid import uuid4
+
+from app.core.config import settings
+from app.infrastructure.persistence.mongodb import get_database
 
 
 class EventType(str, Enum):
@@ -123,6 +127,13 @@ class EventPublisher:
 
         self._lock = Lock()
 
+        self._mongo_repo = None
+        if settings.REPOSITORY_TYPE.lower() == "mongo":
+            from app.infrastructure.command_center.mongo_event_repository import (
+                MongoEventRepository,
+            )
+            self._mongo_repo = MongoEventRepository()
+
     # ==========================================================
     # Publishing
     # ==========================================================
@@ -142,6 +153,9 @@ class EventPublisher:
             listeners = list(self._listeners)
 
             streams = set(self._streams)
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.insert(event)
 
         for listener in listeners:
 
@@ -244,6 +258,48 @@ class EventPublisher:
         incident_id: str | None = None,
     ) -> list[CommandCenterEvent]:
 
+        if self._mongo_repo is not None:
+            return self._mongo_repo.history(
+                limit=limit,
+                event_type=event_type,
+                incident_id=incident_id,
+            )
+
+        with self._lock:
+
+            events = [
+                event
+                for event in self._history
+                if (
+                    event_type is None
+                    or event.type == event_type
+                )
+                and (
+                    incident_id is None
+                    or event.incident_id == incident_id
+                )
+            ]
+
+        if limit is not None:
+            events = events[-limit:]
+
+        return list(events)
+
+    def history(
+        self,
+        limit: int | None = None,
+        *,
+        event_type: EventType | None = None,
+        incident_id: str | None = None,
+    ) -> list[CommandCenterEvent]:
+
+        if self._mongo_repo is not None:
+            return self._mongo_repo.history(
+                limit=limit,
+                event_type=event_type,
+                incident_id=incident_id,
+            )
+
         with self._lock:
 
             events = [
@@ -268,3 +324,6 @@ class EventPublisher:
 
         with self._lock:
             self._history.clear()
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.clear()

@@ -1,6 +1,11 @@
 from datetime import datetime
 from threading import Lock
 
+from app.infrastructure.persistence import (
+    from_jsonable,
+    new_store,
+    to_jsonable,
+)
 from app.infrastructure.tools.exceptions import (
     ToolApprovalDeniedError,
 )
@@ -24,6 +29,31 @@ class ApprovalWorkflow:
 
         self._lock = Lock()
 
+        self._store = new_store("approvals")
+
+        if self._store is not None:
+
+            for record in self._store.all():
+
+                approval = from_jsonable(
+                    record,
+                    ApprovalRequest,
+                )
+
+                if approval is not None:
+                    self._requests[approval.id] = approval
+
+    def _persist(
+        self,
+        approval: ApprovalRequest,
+    ) -> None:
+
+        if self._store is not None:
+            self._store.save(
+                approval.id,
+                to_jsonable(approval),
+            )
+
     # ==========================================================
     # Request Lifecycle
     # ==========================================================
@@ -45,6 +75,8 @@ class ApprovalWorkflow:
 
         with self._lock:
             self._requests[approval.id] = approval
+
+        self._persist(approval)
 
         return approval
 
@@ -76,6 +108,8 @@ class ApprovalWorkflow:
         approval.approved_by = approved_by
         approval.updated_at = datetime.utcnow()
 
+        self._persist(approval)
+
         return approval
 
     def reject(
@@ -92,6 +126,8 @@ class ApprovalWorkflow:
         approval.reason = reason
         approval.updated_at = datetime.utcnow()
 
+        self._persist(approval)
+
         return approval
 
     def mark_executed(
@@ -105,6 +141,8 @@ class ApprovalWorkflow:
         approval.status = ApprovalStatus.EXECUTED
         approval.result = result
         approval.updated_at = datetime.utcnow()
+
+        self._persist(approval)
 
         return approval
 
@@ -124,6 +162,14 @@ class ApprovalWorkflow:
 
         with self._lock:
             return list(self._requests.values())
+
+    def clear(self) -> None:
+
+        with self._lock:
+            self._requests.clear()
+
+        if self._store is not None:
+            self._store.clear()
 
     # ==========================================================
     # Helpers

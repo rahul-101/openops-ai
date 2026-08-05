@@ -25,6 +25,7 @@ from app.infrastructure.dependencies import (
     get_audit_log_service,
     get_data_privacy_service,
     get_model_governance_service,
+    get_playbook_engine,
     get_prompt_registry,
     get_rbac_service,
 )
@@ -177,6 +178,174 @@ def model_stats(
 ):
 
     return governance.get_stats(provider=provider)
+
+
+# ==========================================================
+# Playbooks
+# ==========================================================
+
+
+@router.get(
+    "/playbooks",
+    summary="List registered remediation playbooks",
+)
+def list_playbooks(
+    playbooks: RemediationPlaybookEngine = Depends(get_playbook_engine),
+):
+
+    return [
+        {
+            "name": p.name,
+            "description": p.description,
+            "version": p.version,
+            "steps": [
+                {
+                    "name": s.name,
+                    "tool": s.tool,
+                    "action": s.action,
+                    "risk_level": s.risk_level,
+                    "auto_execute": s.auto_execute,
+                }
+                for s in p.steps
+            ],
+        }
+        for p in playbooks.list()
+    ]
+
+
+@router.post(
+    "/playbooks",
+    summary="Create or update a playbook",
+)
+def save_playbook(
+    body: dict,
+    playbooks: RemediationPlaybookEngine = Depends(get_playbook_engine),
+):
+
+    import yaml
+
+    content = body.get("yaml_content", "")
+    if not content:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing 'yaml_content' in request body.",
+        )
+
+    try:
+        playbook = playbooks.load_yaml(content)
+    except Exception as ex:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid playbook YAML: {str(ex)}",
+        )
+
+    return {
+        "name": playbook.name,
+        "version": playbook.version,
+        "description": playbook.description,
+        "steps_count": len(playbook.steps),
+    }
+
+
+@router.get(
+    "/playbooks/{name}",
+    summary="Get a specific playbook",
+)
+def get_playbook(
+    name: str,
+    playbooks: RemediationPlaybookEngine = Depends(get_playbook_engine),
+):
+
+    playbook = playbooks.get(name)
+    if playbook is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Playbook '{name}' not found.",
+        )
+
+    return {
+        "name": playbook.name,
+        "description": playbook.description,
+        "version": playbook.version,
+        "source": playbook.match.source,
+        "severities": playbook.match.severities,
+        "tags": playbook.match.tags,
+        "steps": [
+            {
+                "name": s.name,
+                "tool": s.tool,
+                "action": s.action,
+                "parameters": s.parameters,
+                "risk_level": s.risk_level,
+                "auto_execute": s.auto_execute,
+            }
+            for s in playbook.steps
+        ],
+        "created_at": playbook.created_at.isoformat(),
+    }
+
+
+@router.delete(
+    "/playbooks/{name}",
+    summary="Remove a playbook",
+)
+def delete_playbook(
+    name: str,
+    playbooks: RemediationPlaybookEngine = Depends(get_playbook_engine),
+):
+
+    playbook = playbooks.get(name)
+    if playbook is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Playbook '{name}' not found.",
+        )
+
+    playbooks.clear()
+
+    return {"message": f"Playbook '{name}' removed."}
+
+
+@router.post(
+    "/playbooks/yaml-validate",
+    summary="Validate playbook YAML content",
+)
+def validate_playbook_yaml(
+    body: dict,
+):
+
+    import yaml
+
+    content = body.get("yaml_content", "")
+    if not content:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing 'yaml_content' in request body.",
+        )
+
+    try:
+        data = yaml.safe_load(content)
+
+        required = ["name", "description", "steps"]
+        for field in required:
+            if field not in data:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required field: {field}",
+                )
+
+        return {
+            "valid": True,
+            "name": data.get("name"),
+            "version": data.get("version", "1.0.0"),
+            "steps_count": len(data.get("steps", [])),
+        }
+
+    except yaml.YAMLError as ex:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid YAML: {str(ex)}",
+        )
 
 
 # ==========================================================

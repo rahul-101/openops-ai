@@ -4,6 +4,12 @@ from enum import Enum
 from threading import Lock
 from uuid import uuid4
 
+from app.infrastructure.persistence import (
+    from_jsonable,
+    new_store,
+    to_jsonable,
+)
+
 
 class EventSeverity(str, Enum):
     """
@@ -106,6 +112,31 @@ class EventIngestionEngine:
 
         self._lock = Lock()
 
+        self._store = new_store("events")
+
+        if self._store is not None:
+
+            for record in self._store.all():
+
+                event = from_jsonable(
+                    record,
+                    NormalizedEvent,
+                )
+
+                if event is not None:
+                    self._events[event.event_id] = event
+
+    def _persist(
+        self,
+        event: NormalizedEvent,
+    ) -> None:
+
+        if self._store is not None:
+            self._store.save(
+                event.event_id,
+                to_jsonable(event),
+            )
+
     def ingest(
         self,
         *,
@@ -154,6 +185,8 @@ class EventIngestionEngine:
         with self._lock:
             self._events[event.event_id] = event
 
+        self._persist(event)
+
         return event
 
     def list(
@@ -195,6 +228,9 @@ class EventIngestionEngine:
 
         with self._lock:
             self._events.clear()
+
+        if self._store is not None:
+            self._store.clear()
 
     @staticmethod
     def _normalize_severity(

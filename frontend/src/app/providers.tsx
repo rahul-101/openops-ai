@@ -4,6 +4,7 @@ import { Toaster } from "sonner"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { AppShellProvider } from "@/components/layout/app-shell-provider"
+import { AuthProvider } from "@/hooks/use-auth"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(
@@ -23,7 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="openops-theme">
         <AppShellProvider>
-          {children}
+          <AuthProvider>{children}</AuthProvider>
           <Toaster richColors position="bottom-right" toastOptions={{ className: "!bg-card" }} />
         </AppShellProvider>
       </ThemeProvider>

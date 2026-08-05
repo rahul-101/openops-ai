@@ -55,6 +55,8 @@ from app.infrastructure.tools.approval import ApprovalWorkflow
 from app.infrastructure.tools.executor import ToolExecutor
 from app.infrastructure.tools.registry import ToolRegistry
 
+from app.core.config import settings
+from app.core.config import settings
 from app.infrastructure.governance.approval_policy import (
     ApprovalPolicyEngine,
 )
@@ -73,6 +75,33 @@ from app.infrastructure.governance.prompt_registry import (
 from app.infrastructure.governance.rbac import RbacService
 from app.infrastructure.governance.models import RiskLevel
 
+# Governance repositories
+if settings.REPOSITORY_TYPE.lower() == "mongo":
+    from app.infrastructure.governance.mongo_approval_repository import (
+        MongoApprovalRepository,
+    )
+    from app.infrastructure.governance.mongo_audit_log_repository import (
+        MongoAuditLogRepository,
+    )
+    from app.infrastructure.governance.mongo_model_governance_repository import (
+        MongoModelGovernanceRepository,
+    )
+    from app.infrastructure.learning.mongo_agent_analytics_repository import (
+        MongoAgentAnalyticsRepository,
+    )
+    from app.infrastructure.aiops.mongo_lifecycle_repository import (
+        MongoLifecycleRepository,
+    )
+    from app.infrastructure.command_center.mongo_event_repository import (
+        MongoEventRepository,
+    )
+    from app.infrastructure.command_center.mongo_command_center_repositories import (
+        MongoTimelineRepository,
+        MongoActivityRepository,
+        MongoExecutionMonitorRepository,
+        MongoDashboardRepository,
+    )
+
 from app.infrastructure.learning.agent_analytics import (
     AgentAnalytics,
 )
@@ -90,6 +119,19 @@ from app.infrastructure.learning.prompt_optimizer import (
 )
 from app.infrastructure.learning.routing_optimizer import (
     RoutingOptimizer,
+)
+
+from app.infrastructure.aiops.mongo_lifecycle_repository import (
+    MongoLifecycleRepository,
+)
+from app.infrastructure.command_center.mongo_event_repository import (
+    MongoEventRepository,
+)
+from app.infrastructure.command_center.mongo_command_center_repositories import (
+    MongoTimelineRepository,
+    MongoActivityRepository,
+    MongoExecutionMonitorRepository,
+    MongoDashboardRepository,
 )
 
 from app.infrastructure.aiops.agents import (
@@ -811,6 +853,47 @@ def get_audit_log_service() -> AuditLogService:
 def get_approval_policy_engine() -> ApprovalPolicyEngine:
 
     engine = ApprovalPolicyEngine()
+
+    if settings.REPOSITORY_TYPE.lower() == "mongo":
+        from app.infrastructure.governance.mongo_approval_repository import (
+            MongoApprovalRepository,
+        )
+
+        repo = MongoApprovalRepository()
+        for action, risk_level in repo.get_all_actions().items():
+            engine.register_action(action, risk_level)
+
+    engine.register_action(
+        "incident.analyze",
+        RiskLevel.LOW,
+    )
+
+    engine.register_action(
+        "tool.servicenow.create_incident",
+        RiskLevel.LOW,
+    )
+
+    engine.register_action(
+        "tool.servicenow.resolve_incident",
+        RiskLevel.MEDIUM,
+    )
+
+    engine.register_action(
+        "tool.kubernetes.restart",
+        RiskLevel.MEDIUM,
+    )
+
+    engine.register_action(
+        "tool.aws.delete",
+        RiskLevel.HIGH,
+    )
+
+    engine.register_action(
+        "tool.database.execute",
+        RiskLevel.HIGH,
+    )
+
+    return engine
 
     engine.register_action(
         "incident.analyze",

@@ -195,3 +195,7 @@ class KnowledgeBaseService:
     ) -> None:
 
         self.repository.delete(document_id)
+
+    def clear(self) -> None:
+
+        self.repository.clear()

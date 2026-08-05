@@ -110,6 +110,14 @@ class OperationsCommandCenter:
             incident_id=incident_id,
         )
 
+    def clear(self) -> None:
+
+        self.publisher.clear()
+        self.timeline.clear()
+        self.activity.clear()
+        self.monitor.clear()
+        self.dashboard.clear()
+
     # ==========================================================
     # Timeline
     # ==========================================================

@@ -7,6 +7,7 @@ from app.domain.entities.incident import Incident
 from app.domain.models.incident_query import IncidentQuery
 from app.domain.models.page import Page
 from app.domain.repositories.incident_repository import IncidentRepository
+from app.infrastructure.persistence import new_store
 
 
 class InMemoryIncidentRepository(IncidentRepository):
@@ -15,6 +16,28 @@ class InMemoryIncidentRepository(IncidentRepository):
     def __init__(self) -> None:
         self._storage: dict[str, Incident] = {}
 
+        self._store = new_store("incidents")
+
+        if self._store is not None:
+
+            for record in self._store.all():
+
+                incident = Incident.model_validate(record)
+
+                if incident is not None:
+                    self._storage[incident.id] = incident
+
+    def _persist(
+        self,
+        incident: Incident,
+    ) -> None:
+
+        if self._store is not None:
+            self._store.save(
+                incident.id,
+                incident.model_dump(mode="json"),
+            )
+
     def create(
         self,
         incident: Incident,
@@ -22,6 +45,7 @@ class InMemoryIncidentRepository(IncidentRepository):
         """Store a new incident."""
 
         self._storage[incident.id] = incident
+        self._persist(incident)
         return incident
 
     def get(
@@ -127,6 +151,7 @@ class InMemoryIncidentRepository(IncidentRepository):
             )
 
         self._storage[incident.id] = incident
+        self._persist(incident)
         return incident
 
     def delete(
@@ -141,3 +166,14 @@ class InMemoryIncidentRepository(IncidentRepository):
             )
 
         del self._storage[incident_id]
+
+        if self._store is not None:
+            self._store.delete(incident_id)
+
+    def clear(self) -> None:
+        """Remove all incidents."""
+
+        self._storage.clear()
+
+        if self._store is not None:
+            self._store.clear()

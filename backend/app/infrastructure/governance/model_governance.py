@@ -1,6 +1,17 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from threading import Lock
+from typing import Optional
+
+from app.core.config import settings
+from app.infrastructure.persistence import (
+    from_jsonable,
+    new_store,
+    to_jsonable,
+)
+from app.infrastructure.persistence.mongodb import get_database
+
+_LIST_KEY = "__all__"
 
 
 @dataclass
@@ -40,6 +51,44 @@ class ModelGovernanceService:
 
         self._lock = Lock()
 
+        self._store = new_store("model_usage")
+
+        self._mongo_repo = None
+        if settings.REPOSITORY_TYPE.lower() == "mongo":
+            from app.infrastructure.governance.mongo_model_governance_repository import (
+                MongoModelGovernanceRepository,
+            )
+            self._mongo_repo = MongoModelGovernanceRepository()
+
+        if self._store is not None:
+
+            blob = self._store.get(_LIST_KEY) or {}
+
+            self._records = []
+
+            for record in blob.get("records", []):
+
+                parsed = from_jsonable(
+                    record,
+                    ModelUsageRecord,
+                )
+
+                if parsed is not None:
+                    self._records.append(parsed)
+
+    def _persist(self) -> None:
+
+        if self._store is not None:
+            self._store.save(
+                _LIST_KEY,
+                {
+                    "records": [
+                        to_jsonable(record)
+                        for record in self._records
+                    ]
+                },
+            )
+
     def record_usage(
         self,
         *,
@@ -65,6 +114,11 @@ class ModelGovernanceService:
         with self._lock:
             self._records.append(record)
 
+        self._persist()
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.insert(record)
+
         return record
 
     def list(
@@ -73,6 +127,13 @@ class ModelGovernanceService:
         model: str | None = None,
         limit: int | None = None,
     ) -> list[ModelUsageRecord]:
+
+        if self._mongo_repo is not None:
+            return self._mongo_repo.list(
+                provider=provider,
+                model=model,
+                limit=limit,
+            )
 
         with self._lock:
 
@@ -157,3 +218,9 @@ class ModelGovernanceService:
 
         with self._lock:
             self._records.clear()
+
+        if self._store is not None:
+            self._store.clear()
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.clear()

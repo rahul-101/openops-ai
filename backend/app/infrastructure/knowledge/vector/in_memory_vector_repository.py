@@ -9,6 +9,11 @@ from app.infrastructure.knowledge.models import (
 from app.infrastructure.knowledge.vector_repository import (
     VectorRepository,
 )
+from app.infrastructure.persistence import (
+    from_jsonable,
+    new_store,
+    to_jsonable,
+)
 
 
 class InMemoryVectorRepository(VectorRepository):
@@ -25,6 +30,31 @@ class InMemoryVectorRepository(VectorRepository):
 
         self._lock = Lock()
 
+        self._store = new_store("knowledge_docs")
+
+        if self._store is not None:
+
+            for record in self._store.all():
+
+                document = from_jsonable(
+                    record,
+                    KnowledgeDocument,
+                )
+
+                if document is not None:
+                    self._documents[document.id] = document
+
+    def _persist(
+        self,
+        document: KnowledgeDocument,
+    ) -> None:
+
+        if self._store is not None:
+            self._store.save(
+                document.id,
+                to_jsonable(document),
+            )
+
     def insert(
         self,
         document: KnowledgeDocument,
@@ -32,6 +62,8 @@ class InMemoryVectorRepository(VectorRepository):
 
         with self._lock:
             self._documents[document.id] = document
+
+        self._persist(document)
 
     def get(
         self,
@@ -47,6 +79,17 @@ class InMemoryVectorRepository(VectorRepository):
 
         with self._lock:
             self._documents.pop(document_id, None)
+
+        if self._store is not None:
+            self._store.delete(document_id)
+
+    def clear(self) -> None:
+
+        with self._lock:
+            self._documents.clear()
+
+        if self._store is not None:
+            self._store.clear()
 
     def list(
         self,

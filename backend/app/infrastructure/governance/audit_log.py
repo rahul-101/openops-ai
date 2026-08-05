@@ -1,7 +1,18 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from threading import Lock
+from typing import Optional
 from uuid import uuid4
+
+from app.core.config import settings
+from app.infrastructure.persistence import (
+    from_jsonable,
+    new_store,
+    to_jsonable,
+)
+from app.infrastructure.persistence.mongodb import get_database
+
+_LIST_KEY = "__all__"
 
 
 @dataclass
@@ -49,6 +60,44 @@ class AuditLogService:
 
         self._lock = Lock()
 
+        self._store = new_store("audit_log")
+
+        self._mongo_repo = None
+        if settings.REPOSITORY_TYPE.lower() == "mongo":
+            from app.infrastructure.governance.mongo_audit_log_repository import (
+                MongoAuditLogRepository,
+            )
+            self._mongo_repo = MongoAuditLogRepository()
+
+        if self._store is not None:
+
+            blob = self._store.get(_LIST_KEY) or {}
+
+            self._entries = []
+
+            for record in blob.get("entries", []):
+
+                parsed = from_jsonable(
+                    record,
+                    AuditLogEntry,
+                )
+
+                if parsed is not None:
+                    self._entries.append(parsed)
+
+    def _persist(self) -> None:
+
+        if self._store is not None:
+            self._store.save(
+                _LIST_KEY,
+                {
+                    "entries": [
+                        to_jsonable(entry)
+                        for entry in self._entries
+                    ]
+                },
+            )
+
     def record(
         self,
         *,
@@ -76,6 +125,11 @@ class AuditLogService:
         with self._lock:
             self._entries.append(entry)
 
+        self._persist()
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.insert(entry)
+
         return entry
 
     def list(
@@ -86,6 +140,15 @@ class AuditLogService:
         decision: str | None = None,
         limit: int | None = None,
     ) -> list[AuditLogEntry]:
+
+        if self._mongo_repo is not None:
+            return self._mongo_repo.list(
+                user=user,
+                action=action,
+                incident_id=incident_id,
+                decision=decision,
+                limit=limit,
+            )
 
         with self._lock:
 
@@ -118,3 +181,9 @@ class AuditLogService:
 
         with self._lock:
             self._entries.clear()
+
+        if self._store is not None:
+            self._store.clear()
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.clear()

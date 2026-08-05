@@ -100,9 +100,17 @@ KNOWLEDGE_DOCS = [
 async def seed_demo_data() -> None:
     """
     Seeds demo data by replaying the real pipeline and derived stores.
+
+    When persistence is enabled the seeding is idempotent: if the
+    lifecycle store already contains demo incidents (i.e. a prior
+    seed survived a restart) it is skipped instead of duplicated.
     """
 
     orchestrator = get_incident_lifecycle_orchestrator()
+
+    if orchestrator.list():
+        logger.info("Demo data already present; skipping seed")
+        return
 
     for spec in DEMO_ALERTS:
 

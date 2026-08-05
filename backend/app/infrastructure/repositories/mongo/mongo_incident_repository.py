@@ -166,3 +166,8 @@ class MongoIncidentRepository(IncidentRepository):
             raise ResourceNotFoundException(
                 f"Incident '{incident_id}' not found"
             )
+
+    def clear(self) -> None:
+        """Remove all incidents from the collection."""
+
+        self.collection.delete_many({})

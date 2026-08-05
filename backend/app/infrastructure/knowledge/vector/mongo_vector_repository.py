@@ -183,3 +183,6 @@ class MongoVectorRepository(VectorRepository):
             metadata=document.get("metadata", {}),
             score=document.get("score", 0.0),
         )
+
+    def clear(self) -> None:
+        self.collection.delete_many({})

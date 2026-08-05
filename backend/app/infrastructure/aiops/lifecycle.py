@@ -3,6 +3,7 @@ from datetime import datetime
 from enum import Enum
 from threading import Lock
 
+from app.core.config import settings
 from app.infrastructure.aiops.agents import (
     AIOpsContext,
     MultiAgentRunner,
@@ -24,6 +25,12 @@ from app.infrastructure.learning.evaluation_engine import (
 from app.infrastructure.learning.feedback_engine import (
     FeedbackEngine,
 )
+from app.infrastructure.persistence import (
+    from_jsonable,
+    new_store,
+    to_jsonable,
+)
+from app.infrastructure.persistence.mongodb import get_database
 
 
 class LifecycleStatus(str, Enum):
@@ -126,6 +133,41 @@ class IncidentLifecycleOrchestrator:
         self._incidents: dict[str, LifecycleIncident] = {}
 
         self._lock = Lock()
+
+        self._store = new_store("lifecycle")
+
+        self._mongo_repo = None
+        if settings.REPOSITORY_TYPE.lower() == "mongo":
+            from app.infrastructure.aiops.mongo_lifecycle_repository import (
+                MongoLifecycleRepository,
+            )
+            self._mongo_repo = MongoLifecycleRepository()
+            # Load from MongoDB
+            for incident in self._mongo_repo.list():
+                self._incidents[incident.incident_id] = incident
+
+        if self._store is not None:
+
+            for record in self._store.all():
+
+                incident = from_jsonable(
+                    record,
+                    LifecycleIncident,
+                )
+
+                if incident is not None:
+                    self._incidents[incident.incident_id] = incident
+
+    def _persist(
+        self,
+        incident: LifecycleIncident,
+    ) -> None:
+
+        if self._store is not None:
+            self._store.save(
+                incident.incident_id,
+                to_jsonable(incident),
+            )
 
     async def handle_alert(
         self,
@@ -354,6 +396,8 @@ class IncidentLifecycleOrchestrator:
         with self._lock:
             self._incidents[incident.incident_id] = incident
 
+        self._persist(incident)
+
         return incident
 
     def get(
@@ -373,6 +417,9 @@ class IncidentLifecycleOrchestrator:
 
         with self._lock:
             self._incidents.clear()
+
+        if self._store is not None:
+            self._store.clear()
 
     # ==========================================================
     # Helpers

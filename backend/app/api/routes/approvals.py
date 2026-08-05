@@ -2,12 +2,14 @@ from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.infrastructure.governance.audit_log import AuditLogService
 from app.infrastructure.tools.approval import ApprovalWorkflow
 from app.infrastructure.tools.exceptions import (
     ToolApprovalDeniedError,
 )
 from app.infrastructure.tools.executor import ToolExecutor
 from app.infrastructure.dependencies import (
+    get_audit_log_service,
     get_approval_workflow,
     get_tool_executor,
 )
@@ -99,6 +101,9 @@ def approve(
     workflow: ApprovalWorkflow = Depends(
         get_approval_workflow,
     ),
+    audit: AuditLogService = Depends(
+        get_audit_log_service,
+    ),
 ):
 
     try:
@@ -117,6 +122,15 @@ def approve(
             detail=str(ex),
         )
 
+    audit.record(
+        user=(body or {}).get("approved_by") or "operator",
+        action=f"approve_{approval.tool_name}",
+        decision="approved",
+        incident_id=approval.context.get("incident_id") if approval.context else None,
+        approval_id=approval.id,
+        tool_name=approval.tool_name,
+    )
+
     return _serialize(approval)
 
 
@@ -129,6 +143,9 @@ def reject(
     body: dict | None = None,
     workflow: ApprovalWorkflow = Depends(
         get_approval_workflow,
+    ),
+    audit: AuditLogService = Depends(
+        get_audit_log_service,
     ),
 ):
 
@@ -149,6 +166,19 @@ def reject(
             detail=str(ex),
         )
 
+    audit.record(
+        user=(
+            (body or {}).get("approved_by")
+            or "operator"
+        ),
+        action=f"reject_{approval.tool_name}",
+        decision="rejected",
+        incident_id=approval.context.get("incident_id") if approval.context else None,
+        approval_id=approval.id,
+        tool_name=approval.tool_name,
+        reason=(body or {}).get("reason"),
+    )
+
     return _serialize(approval)
 
 
@@ -160,6 +190,12 @@ async def execute(
     approval_id: str,
     executor: ToolExecutor = Depends(
         get_tool_executor,
+    ),
+    workflow: ApprovalWorkflow = Depends(
+        get_approval_workflow,
+    ),
+    audit: AuditLogService = Depends(
+        get_audit_log_service,
     ),
 ):
 
@@ -173,6 +209,19 @@ async def execute(
         raise HTTPException(
             status_code=409,
             detail=str(ex),
+        )
+
+    approval = workflow.get(approval_id)
+    if approval:
+        audit.record(
+            user="operator",
+            action=f"execute_{approval.tool_name}",
+            decision="executed",
+            incident_id=approval.context.get("incident_id") if approval.context else None,
+            approval_id=approval.id,
+            tool_name=approval.tool_name,
+            success=result.success,
+            error=result.error,
         )
 
     return {

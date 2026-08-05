@@ -17,10 +17,21 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: str = "INFO"
 
+    # Security - JWT configuration
+    SECRET_KEY: str = "your-super-secret-key-change-this-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
     # Seed realistic demo data (alerts, lifecycle runs, agent
     # analytics, model usage, knowledge docs) on application
     # startup so the frontend is populated without manual setup.
     SEED_DEMO_DATA: bool = True
+
+    # Persist operational state to SQLite so incidents, approvals,
+    # lifecycle records, analytics and knowledge survive restarts.
+    # Disabled automatically in the test environment.
+    PERSISTENCE_ENABLED: bool = True
+    PERSISTENCE_DB_PATH: str = str(BASE_DIR / "openops.db")
 
     # Repository configuration
     REPOSITORY_TYPE: str = "memory"
@@ -54,6 +65,22 @@ class Settings(BaseSettings):
     KNOWLEDGE_COLLECTION: str = "knowledge_vectors"
     VECTOR_SEARCH_INDEX: str = "vector_index"
     INCIDENT_MEMORY_COLLECTION: str = "incident_memory"
+
+    # Governance collections
+    APPROVAL_COLLECTION: str = "approval_policies"
+    AUDIT_LOG_COLLECTION: str = "audit_logs"
+    MODEL_GOVERNANCE_COLLECTION: str = "model_governance"
+    AGENT_ANALYTICS_COLLECTION: str = "agent_analytics"
+
+    # Command Center collections
+    COMMAND_CENTER_EVENTS_COLLECTION: str = "command_center_events"
+    TIMELINE_COLLECTION: str = "incident_timelines"
+    ACTIVITY_FEED_COLLECTION: str = "activity_feed"
+    EXECUTION_MONITOR_COLLECTION: str = "execution_monitor"
+    DASHBOARD_COLLECTION: str = "dashboard_metrics"
+
+    # Lifecycle collection
+    LIFECYCLE_COLLECTION: str = "incident_lifecycle"
 
 # ------------------------------------------------------------------
 # Google ADK bridge

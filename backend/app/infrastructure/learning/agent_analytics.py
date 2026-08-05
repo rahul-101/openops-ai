@@ -1,5 +1,13 @@
 from dataclasses import dataclass
 from threading import Lock
+from typing import Optional
+
+from app.core.config import settings
+from app.infrastructure.persistence import (
+    from_jsonable,
+    new_store,
+    to_jsonable,
+)
 
 
 @dataclass
@@ -52,6 +60,43 @@ class AgentAnalytics:
 
         self._lock = Lock()
 
+        self._store = new_store("agent_analytics")
+
+        self._mongo_repo = None
+        if settings.REPOSITORY_TYPE.lower() == "mongo":
+            from app.infrastructure.learning.mongo_agent_analytics_repository import (
+                MongoAgentAnalyticsRepository,
+            )
+            self._mongo_repo = MongoAgentAnalyticsRepository()
+            # Load from MongoDB
+            for stats in self._mongo_repo.get_all():
+                self._agents[stats.agent] = stats
+
+        if self._store is not None:
+
+            for record in self._store.all():
+
+                stats = from_jsonable(
+                    record,
+                    AgentStats,
+                )
+
+                if stats is not None:
+                    self._agents[stats.agent] = stats
+
+    def _persist(
+        self,
+        agent: str,
+    ) -> None:
+
+        stats = self._agents.get(agent)
+
+        if self._store is not None and stats is not None:
+            self._store.save(
+                agent,
+                to_jsonable(stats),
+            )
+
     def register_agent(
         self,
         agent: str,
@@ -63,6 +108,11 @@ class AgentAnalytics:
                 agent,
                 AgentStats(agent=agent),
             )
+
+        self._persist(agent)
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.save(self._agents[agent])
 
     def record_run(
         self,
@@ -91,10 +141,23 @@ class AgentAnalytics:
             else:
                 stats.failed_runs += 1
 
+        self._persist(agent)
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.save(stats)
+
     def get_analytics(
         self,
         agent: str | None = None,
     ) -> list[AgentStats]:
+
+        if self._mongo_repo is not None:
+            if agent is not None:
+                stats = self._mongo_repo.get(agent)
+                if stats is not None:
+                    return [stats]
+                return [AgentStats(agent=agent)]
+            return self._mongo_repo.get_all()
 
         with self._lock:
 
@@ -120,11 +183,11 @@ class AgentAnalytics:
 
     def get_summary(self) -> dict:
 
-        with self._lock:
-
-            agents = list(
-                self._agents.values()
-            )
+        if self._mongo_repo is not None:
+            agents = self._mongo_repo.get_all()
+        else:
+            with self._lock:
+                agents = list(self._agents.values())
 
         if not agents:
 
@@ -156,3 +219,9 @@ class AgentAnalytics:
 
         with self._lock:
             self._agents.clear()
+
+        if self._store is not None:
+            self._store.clear()
+
+        if self._mongo_repo is not None:
+            self._mongo_repo.clear()

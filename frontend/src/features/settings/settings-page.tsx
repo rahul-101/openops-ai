@@ -1,13 +1,15 @@
 import { useTheme } from "@/components/theme-provider"
 import { PageHeader } from "@/components/shared/page-header"
 import { CardShell } from "@/components/shared/card-shell"
+import { EmptyState, LoadingState } from "@/components/shared/states"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { feClient } from "@/services/api"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { Cpu, DollarSign, Gauge, Play, Shield, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -103,6 +105,14 @@ export function SettingsPage() {
           <GovernanceCard />
         </CardShell>
 
+        <CardShell title="Model usage" description="Live cost and latency from the AI gateway">
+          <ModelUsageCard />
+        </CardShell>
+
+        <CardShell title="Playbooks" description="Remediation playbooks for autonomous response">
+          <PlaybookManagementCard />
+        </CardShell>
+
         <CardShell title="Danger zone" description="Irreversible actions">
           <div className="flex items-center justify-between rounded-lg border border-destructive/30 p-3">
             <div>
@@ -114,6 +124,127 @@ export function SettingsPage() {
             </Button>
           </div>
         </CardShell>
+      </div>
+    </div>
+  )
+}
+
+function ModelUsageCard() {
+  const modelStats = useQuery({
+    queryKey: ["settings", "modelStats"],
+    queryFn: () => feClient.get<{ total_requests: number; total_tokens: number; total_cost_usd: number; average_latency_ms: number; providers: Record<string, unknown> }>("/governance/models/stats"),
+  })
+
+  if (modelStats.isPending) {
+    return <LoadingState label="Loading model usage…" />
+  }
+
+  const stats = modelStats.data ?? { total_requests: 0, total_tokens: 0, total_cost_usd: 0, average_latency_ms: 0, providers: {} }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="rounded-lg border p-4">
+        <div className="flex items-center gap-2">
+          <Cpu className="h-4 w-4 text-primary" />
+          <p className="text-sm text-muted-foreground">Total Requests</p>
+        </div>
+        <p className="mt-2 text-2xl font-semibold">{stats.total_requests.toLocaleString()}</p>
+      </div>
+      <div className="rounded-lg border p-4">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-warning" />
+          <p className="text-sm text-muted-foreground">Model Costs</p>
+        </div>
+        <p className="mt-2 text-2xl font-semibold">${stats.total_cost_usd.toFixed(2)}</p>
+      </div>
+      <div className="rounded-lg border p-4">
+        <div className="flex items-center gap-2">
+          <Gauge className="h-4 w-4 text-success" />
+          <p className="text-sm text-muted-foreground">Avg Latency</p>
+        </div>
+        <p className="mt-2 text-2xl font-semibold">{stats.average_latency_ms}ms</p>
+      </div>
+      <div className="rounded-lg border p-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-accent" />
+          <p className="text-sm text-muted-foreground">Providers</p>
+        </div>
+        <p className="mt-2 text-2xl font-semibold">{Object.keys(stats.providers).length}</p>
+      </div>
+    </div>
+  )
+}
+
+interface Playbook {
+  name: string
+  version?: string
+  steps?: unknown[]
+}
+
+function PlaybookManagementCard() {
+  const playbooks = useQuery({
+    queryKey: ["settings", "playbooks"],
+    queryFn: () => feClient.get<Playbook[]>("/aiops/playbooks"),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (name: string) => feClient.delete<void>(`/governance/playbooks/${name}`),
+    onSuccess: () => {
+      toast.success("Playbook deleted")
+      playbooks.refetch()
+    },
+    onError: () => toast.error("Failed to delete playbook"),
+  })
+
+  if (playbooks.isPending) {
+    return <LoadingState label="Loading playbooks…" />
+  }
+
+  const playbookCount = playbooks.data?.length ?? 0
+
+  return (
+    <div className="space-y-3">
+      {playbookCount === 0 ? (
+        <EmptyState
+          title="No playbooks configured"
+          description="Create playbooks to automate incident remediation."
+          className="min-h-[120px]"
+        />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {playbooks.data?.slice(0, 4).map((p) => (
+            <div key={p.name} className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <Play className="h-4 w-4 text-violet-500" />
+                <div>
+                  <p className="text-sm font-medium">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">{p.steps?.length || 0} steps</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <Badge variant="outline" className="px-2 py-0.5 text-[10px]">{p.version}</Badge>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={() => deleteMutation.mutate(p.name)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          {playbookCount > 4 && (
+            <div className="col-span-full text-center">
+              <p className="text-xs text-muted-foreground">+{playbookCount - 4} more playbooks</p>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="pt-2">
+        <Button variant="outline" className="w-full" onClick={() => window.location.href = "/playbooks"}>
+          Manage Playbooks
+        </Button>
       </div>
     </div>
   )
